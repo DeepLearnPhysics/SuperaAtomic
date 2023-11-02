@@ -15,12 +15,14 @@ namespace supera {
   typedef unsigned long VoxelID_t;
   typedef unsigned long InstanceID_t;
 
-  const double        kINVALID_DOUBLE  = std::numeric_limits< double >::max();
-  const float         kINVALID_FLOAT   = std::numeric_limits< float  >::max();
-  const unsigned int  kINVALID_UINT    = std::numeric_limits<unsigned int>::max();
-  const unsigned long kINVALID_ULONG   = std::numeric_limits<unsigned long>::max();
-  const long          kINVALID_LONG    = std::numeric_limits<long>::max();
-  const size_t        kINVALID_SIZE    = std::numeric_limits< size_t >::max();
+  const double        kINVALID_DOUBLE    = std::numeric_limits< double >::max();
+  const float         kINVALID_FLOAT     = std::numeric_limits< float  >::max();
+  const int           kINVALID_INT       = std::numeric_limits< int  >::max();
+  const unsigned int  kINVALID_UINT      = std::numeric_limits<unsigned int>::max();
+  const unsigned long kINVALID_ULONG     = std::numeric_limits<unsigned long>::max();
+  const unsigned long kINVALID_ULONGLONG = std::numeric_limits<unsigned long long>::max();    // same as ulong on most (all?) 64-bit architectures, but be safe
+  const long          kINVALID_LONG      = std::numeric_limits<long>::max();
+  const size_t        kINVALID_SIZE      = std::numeric_limits< size_t >::max();
 
   const PdgCode_t kINVALID_PDG     = kINVALID_LONG;
   const Index_t   kINVALID_INDEX   = kINVALID_ULONG;
