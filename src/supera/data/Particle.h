@@ -168,7 +168,7 @@ namespace supera {
     void UpdateLastPoint(const EDep& pt);
     void SizeCheck() const;
     size_t Size() const;
-    void Merge(ParticleLabel& child,bool verbose=false);
+    void Merge(ParticleLabel& child);
     //supera::SemanticType_t shape() const;
 
     std::string dump() const;
@@ -197,6 +197,9 @@ namespace supera {
       const std::vector<ParticleLabel> & Particles() const { return _particles; }
       /// Get the list of particle labels, non-const version.  This implementation is quite lazy but I doubt we'll need anything more sophisticated.
             std::vector<ParticleLabel> & Particles()       { _dirty.fill(true); return _particles; }
+
+      /// Get a particular particle with a specified ID
+      const ParticleLabel& Particle(InstanceID_t id) const;
 
       /// \brief Get the dE/dx for all voxels with energy deposition in them.
       /// N.b.: For voxels that have multiple contributing particles, the dE/dx computed is the energy-weighted mean dE/dx.

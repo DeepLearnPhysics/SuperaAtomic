@@ -31,6 +31,7 @@ namespace supera {
   enum ProcessType_t {
     kTrack,
     kNeutron,
+    kNucleus,
     kPhoton,
     kPrimary,
     kCompton,       // compton shower
@@ -58,6 +59,9 @@ namespace supera {
   inline std::string StringifyTrackID(supera::TrackID_t id) { return (id == kINVALID_TRACKID ? "kINVALID_TRACKID" : std::to_string(id)); }
   inline std::string StringifyVoxelID(supera::VoxelID_t id) { return (id == kINVALID_VOXELID ? "kINVALID_VOXELID" : std::to_string(id)); }
   inline std::string StringifyInstanceID(supera::InstanceID_t id) { return (id == kINVALID_INSTANCEID ? "kINVALID_INSTANCEID" : std::to_string(id)); }
+  inline std::string StringifyPdgCode(supera::PdgCode_t id) { return (id == kINVALID_PDG) ? "kINVALID_PDG" : std::to_string(id); }
+  inline std::string StringifyDouble(double val) { return (val == kINVALID_DOUBLE) ? "kINVALID_DOUBLE" : std::to_string(val); }
+
 
   /// Namespace for supera message related types
   namespace msg {

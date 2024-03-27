@@ -136,5 +136,10 @@ namespace supera{
     Point3D pos;
     double time;
   };
+
+
+  std::string StringifyEDep(supera::EDep pt);
+  std::string StringifyPoint3D(supera::Point3D pt);
+
 }
 #endif

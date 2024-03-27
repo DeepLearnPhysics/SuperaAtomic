@@ -111,20 +111,21 @@ namespace supera {
         // They will be grouped together in various ways in the subsequent steps.
         std::vector<supera::ParticleLabel> labels = this->InitializeLabels(data, meta);
 
-        // Now group the labels together in certain cases
-        // (e.g.: electromagnetic showers, neutron clusters, ...)
-        // There are lots of edge cases so the logic is spread out over many methods.
-        //this->MergeShowerIonizations(labels); // merge supera::kIonization = too small delta rays into parents
-        // ** TODO identify and merge too-small shower fragments to other touching showers **
-        this->MergeShowerTouchingElectron(meta, labels); // merge larcv::kShapeLEScatter to touching shower
-        // Apply energy threshold (may drop some pixels)
+        //// Now group the labels together in certain cases
+        //// (e.g.: electromagnetic showers, neutron clusters, ...)
+        //// There are lots of edge cases so the logic is spread out over many methods.
+        ////this->MergeShowerIonizations(labels); // merge supera::kIonization = too small delta rays into parents
+        //// ** TODO identify and merge too-small shower fragments to other touching showers **
+        ////this->MergeShowerTouchingElectron(meta, labels); // merge larcv::kShapeLEScatter to touching shower
+        //// Apply energy threshold (may drop some pixels)
+
+
         this->ApplyEnergyThreshold(labels);
         this->SetSemanticType(labels);
-        
         this->MergeShowerConversion(labels); // merge supera::kConversion a photon merged to a parent photon
         this->MergeShowerFamilyTouching(meta, labels); // merge supera::kShapeShower to touching parent shower/delta/michel
         this->MergeShowerTouching(meta, labels); // merge supera::kShapeShower to touching shower in the same family tree
-        this->MergeShowerTouchingLEScatter(meta,labels);
+        this->MergeTouchingLEScatter(meta,labels);
         
         // ** TODO consider this separate from MergeShowerIonizations?? **
         this->MergeDeltas(labels); // merge supera::kDelta to a parent if too small
@@ -136,6 +137,8 @@ namespace supera {
             if(label.energy.size() < _compton_size)
                 label.part.shape = supera::kShapeLEScatter;
         }
+
+        // After all merging is 
 
         // Now that we have grouped the true particles together,
         // at this point we're ready to build a new set of labels
@@ -281,6 +284,10 @@ namespace supera {
     {
         auto& dest   = labels.at(this->InputIndex(dest_trackid));
         auto& target = labels.at(this->InputIndex(target_trackid));
+        if(dest_trackid==9) {
+            std::cout<<"  Merging track " << target_trackid << " into " << dest_trackid << std::endl;
+            std::cout<<target.dump()<<std::endl;
+        }
         dest.Merge(target);
         for(auto const& trackid : target.merged_v)
             labels.at(this->InputIndex(trackid)).merge_id = dest.part.trackid;
@@ -316,26 +323,32 @@ namespace supera {
                             LOG_FATAL() << "Delta ray with an invalid parent is not allowed!\n";
                             throw meatloaf();
                         }
-                        part.group_id = labels[parent_index].part.id;
+                        //part.group_id = labels[parent_index].part.id;
+                        part.group_id = part.id;
                         break;
 
                     case kShapeShower:
+
                         part.group_id = part.id;
                         for(auto const& parent_trackid : _mcpl.ParentTrackIdArray(label.part.trackid))
                         {
                             parent_index = this->InputIndex(parent_trackid);
+                            auto parent_shape = labels[parent_index].part.shape;
+                            auto parent_id    = labels[parent_index].part.id;
+
                             if(parent_index == kINVALID_INDEX)
                                 continue;
                             if(!labels[parent_index].valid)
                                 continue;
-                            if(labels[parent_index].part.shape == kShapeLEScatter)
+                            if(parent_shape == kShapeLEScatter)
                                 continue;
-                            if(labels[parent_index].part.shape != kShapeShower)
+                            if(parent_shape != kShapeShower && parent_shape != kShapeMichel && parent_shape != kShapeDelta)
                                 break;
-                            if(labels[parent_index].part.id == kINVALID_INSTANCEID)
+                            if(parent_id == kINVALID_INSTANCEID)
                                 continue;
                             part.group_id = labels[parent_index].part.id;
                         }
+
                         break;
 
                     case kShapeLEScatter:
@@ -498,13 +511,13 @@ namespace supera {
                 break;
 
                 case kPrimary:
-                if(std::abs(label.part.pdg) != 11 && label.part.pdg != 22) 
-                {
-                    label.part.shape = supera::kShapeTrack;
+                    if(std::abs(label.part.pdg) != 11 && label.part.pdg != 22) 
+                    {
+                        label.part.shape = supera::kShapeTrack;
+                        break;
+                    }
+                    label.part.shape = supera::kShapeShower;
                     break;
-                }
-                label.part.shape = supera::kShapeShower;
-                break;
 
                 case kDelta:
                     if(label.energy.size() < _delta_size)
@@ -519,8 +532,10 @@ namespace supera {
                     else if(std::abs(label.part.pdg)==11 || label.part.pdg == 22) {
                         if(label.energy.size() > _compton_size)
                             label.part.shape = kShapeShower;
-                        else
+                        else {
                             label.part.shape = kShapeLEScatter;
+                            LOG_WARNING() << "Assigned to kShapeLEScatter " << std::endl << label.dump() << std::endl;
+                        }
                     }else{
                         label.part.shape = kShapeTrack;
                     }
@@ -530,6 +545,7 @@ namespace supera {
                 case kPhotoElectron:
                 case kNeutron:
                     label.part.shape = kShapeLEScatter;
+                    //LOG_WARNING() << "\"Neutron\" type assigned to kShapeLEScatter " << std::endl << label.dump() << std::endl;
                     break;
 
                 case kPhoton:
@@ -539,11 +555,25 @@ namespace supera {
                 case kConversion:
                 case kCompton:
                 case kOtherShower:
+                    if(std::abs(label.part.pdg)==11 || label.part.pdg == 22) {
+                        if(label.energy.size() > _compton_size)
+                            label.part.shape = kShapeShower;
+                        else {
+                            label.part.shape = kShapeLEScatter;
+                            //LOG_WARNING() << "Assigned to kShapeLEScatter " << std::endl << label.dump() << std::endl;
+                        }
+                    }else{
+                        label.part.shape = kShapeTrack;
+                    }
+                    break;
+
+                case kNucleus:
                     if(label.energy.size() > _compton_size)
-                        label.part.shape = kShapeShower;
+                        label.part.shape = kShapeTrack;
                     else
                         label.part.shape = kShapeLEScatter;
                     break;
+
             }
         }
     }
@@ -629,12 +659,45 @@ namespace supera {
             output2trackid.push_back(inputLabel.part.trackid);
 
             // 4. Set the first and last step 
+            // If Invalid, attempt to search first.
+            /*
+            double first_time = inputLabel.first_pt.t;
+            double last_time  = inputLabel.last_pt.t;
+            if(first_time == kINVALID_DOUBLE) {
+                for(auto const& edep : inputLabel.energy) {
+                    if(edep.t < first_time) {
+                        first_time = edep.t;
+                        inputLabel.first_pt.x = edep.x;
+                        inputLabel.first_pt.y = edep.y;
+                        inputLabel.first_pt.z = edep.z;
+                    }
+                }
+            }
+            if(last_time == kINVALID_DOUBLE) {
+                last_time = -1.e20;
+                for(auto const& edep : inputLabel.energy) {
+                    if(edep.t > last_time) {
+                        first_time = edep.t;
+                        inputLabel.last_pt.x = edep.x;
+                        inputLabel.last_pt.y = edep.y;
+                        inputLabel.last_pt.z = edep.z;
+                    }
+                }
+            }
+            */
             auto const &first_pt = inputLabel.first_pt;
             auto const &last_pt = inputLabel.last_pt;
-            if (first_pt.t != kINVALID_DOUBLE)
+            if (first_pt.t != kINVALID_DOUBLE) {
                 part.first_step = supera::Vertex(first_pt.x, first_pt.y, first_pt.z, first_pt.t);
-            if (last_pt.t != kINVALID_DOUBLE)
+            }else if (inputLabel.energy.size()){
+                LOG_WARNING() << "Non-empty particle yet the first step is not filled!" << std::endl << inputLabel.dump() << std::endl;
+            }
+
+            if (last_pt.t != kINVALID_DOUBLE){
                 part.last_step = supera::Vertex(last_pt.x, last_pt.y, last_pt.z, last_pt.t);
+            }else if (inputLabel.energy.size() && part.shape == supera::kShapeTrack){
+                LOG_WARNING() << "Non-empty particle yet the last step is not filled!" << std::endl << inputLabel.dump() << std::endl;
+            }
             LOG_VERBOSE() << "  true particle start: " << part.first_step.dump() << "\n"
                           << "                  end: " << part.last_step.dump() << "\n";
 
@@ -658,12 +721,44 @@ namespace supera {
                 output2trackid.push_back(inputLabel.part.trackid);
 
                 // 4. Set the first and last step 
+                // If Invalid, attempt to search first.
+                /*
+                double first_time = inputLabel.first_pt.t;
+                double last_time  = inputLabel.last_pt.t;
+                if(first_time == kINVALID_DOUBLE) {
+                    for(auto const& edep : inputLabel.energy) {
+                        if(edep.t < first_time) {
+                            first_time = edep.t;
+                            inputLabel.first_pt.x = edep.x;
+                            inputLabel.first_pt.y = edep.y;
+                            inputLabel.first_pt.z = edep.z;
+                        }
+                    }
+                }
+                if(last_time == kINVALID_DOUBLE) {
+                    last_time = -1.e20;
+                    for(auto const& edep : inputLabel.energy) {
+                        if(edep.t > last_time) {
+                            first_time = edep.t;
+                            inputLabel.last_pt.x = edep.x;
+                            inputLabel.last_pt.y = edep.y;
+                            inputLabel.last_pt.z = edep.z;
+                        }
+                    }
+                }
+                */
                 auto const &first_pt = inputLabel.first_pt;
                 auto const &last_pt = inputLabel.last_pt;
-                if (first_pt.t != kINVALID_DOUBLE)
+                if (first_pt.t != kINVALID_DOUBLE){
                     part.first_step = supera::Vertex(first_pt.x, first_pt.y, first_pt.z, first_pt.t);
-                if (last_pt.t != kINVALID_DOUBLE)
+                }else if (inputLabel.energy.size()) {
+                    LOG_WARNING() << "Non-empty particle yet the first step is not filled!" << std::endl << inputLabel.dump() << std::endl;
+                }
+                if (last_pt.t != kINVALID_DOUBLE){
                     part.last_step = supera::Vertex(last_pt.x, last_pt.y, last_pt.z, last_pt.t);
+                }else if (inputLabel.energy.size() && part.shape == supera::kShapeTrack){
+                    LOG_WARNING() << "Non-empty particle yet the last step is not filled!" << std::endl << inputLabel.dump() << std::endl;
+                }
                 LOG_VERBOSE() << "  true particle start: " << part.first_step.dump() << "\n"
                               << "                  end: " << part.last_step.dump() << "\n";
             }
@@ -756,7 +851,7 @@ namespace supera {
     std::vector<supera::ParticleLabel>
     LArTPCMLReco3D::InitializeLabels(const EventInput &evtInput, const supera::ImageMeta3D &meta) const
     {
-        LOG_DEBUG() << "starting" << std::endl;
+        LOG_WARNING() << "starting" << std::endl;
         // this default-constructs the whole lot of them, which fills their values with defaults/invalid values
         std::vector<supera::ParticleLabel> labels(evtInput.size());
 
@@ -798,7 +893,7 @@ namespace supera {
 
     void LArTPCMLReco3D::MergeShowerConversion(std::vector<supera::ParticleLabel>& labels) const
     {
-        LOG_DEBUG() << "starting" << std::endl;
+        LOG_WARNING() << "starting" << std::endl;
         int merge_ctr = 0;
         //int invalid_ctr = 0;
         do
@@ -847,7 +942,7 @@ namespace supera {
     
     void LArTPCMLReco3D::MergeDeltas(std::vector<supera::ParticleLabel>& labels) const
     {
-        LOG_DEBUG() << "starting" << std::endl;
+        LOG_WARNING() << "starting" << std::endl;
         for (auto &label : labels)
         {
             //if(label.part.type != supera::kDelta) continue;
@@ -898,7 +993,7 @@ namespace supera {
     void LArTPCMLReco3D::MergeShowerFamilyTouching(const supera::ImageMeta3D& meta,
                                                    std::vector<supera::ParticleLabel>& labels) const
     {
-        LOG_DEBUG() << "starting" << std::endl;
+        LOG_WARNING() << "starting" << std::endl;
         // Merge touching shower fragments
         // Direct parentage between kShapeShower => kShapeShower/kShapeDelta/kShapeMichel
         int merge_ctr = 0;
@@ -963,7 +1058,7 @@ namespace supera {
 
     void LArTPCMLReco3D::MergeShowerIonizations(std::vector<supera::ParticleLabel>& labels) const
     {
-        LOG_DEBUG() << "starting" << std::endl;
+        LOG_WARNING() << "starting" << std::endl;
         // Loop over particles of a type kIonization (=touching to its parent physically by definition)
         // If a parent is found, merge to the parent
         int merge_ctr = 0;
@@ -1004,7 +1099,7 @@ namespace supera {
     void LArTPCMLReco3D::MergeShowerTouching(const supera::ImageMeta3D& meta,
                                              std::vector<supera::ParticleLabel>& labels) const
     {
-        LOG_DEBUG() << "starting" << std::endl;
+        LOG_WARNING() << "starting" << std::endl;
         // Go over all pair-wise combination of two shower instances
         // For each shower, find all consecutive parents of shower/michel/delta type (break if track found)
         // If there is a common parent in two list AND if two showers are physically touching, merge
@@ -1017,12 +1112,19 @@ namespace supera {
                 auto &label_a = labels[i];
                 if (!label_a.valid) continue;
                 if (label_a.part.shape != supera::kShapeShower) continue;
-                for (size_t j = 0; j < labels.size(); ++j)
+
+                for (size_t j = i+1; j < labels.size(); ++j)
                 {
                     if (i == j) continue;
                     auto &label_b = labels[j];
                     if (!label_b.valid) continue;
                     if (label_b.part.shape != supera::kShapeShower) continue;
+
+                    bool verbose = false;
+                    verbose = (label_a.part.trackid == 13632 || label_b.part.trackid == 13632);
+                    verbose = verbose && (label_a.part.trackid == 11702 || label_b.part.trackid == 11702);
+                    if(verbose)
+                        LOG_WARNING() << "Inspecting track ID" << label_a.part.trackid << std::endl;
 
                     // check if these showers share the parentage
                     // list a's parents
@@ -1051,8 +1153,12 @@ namespace supera {
                         if (same_family) break;
                     }
 
-                    if (same_family && this->IsTouching(meta, label_a.energy, label_b.energy))
+
+                    if (same_family && this->IsTouching(meta, label_a.energy, label_b.energy, verbose))
                     {
+                        if (verbose)
+                            LOG_WARNING() << "Touching" << std::endl;
+
                         if (label_a.energy.size() > label_b.energy.size())
                             this->MergeParticleLabel(labels, label_a.part.trackid, label_b.part.trackid);
                         else
@@ -1068,9 +1174,9 @@ namespace supera {
     // ------------------------------------------------------
 
     void LArTPCMLReco3D::MergeShowerTouchingElectron(const supera::ImageMeta3D& meta,
-                                                      std::vector<supera::ParticleLabel>& labels) const
+        std::vector<supera::ParticleLabel>& labels) const
     {
-        LOG_DEBUG() << "starting" << std::endl;
+        LOG_WARNING() << "starting" << std::endl;
         size_t merge_ctr = 1;
         while (merge_ctr)
         {
@@ -1119,10 +1225,13 @@ namespace supera {
 
     // ------------------------------------------------------
 
-    void LArTPCMLReco3D::MergeShowerTouchingLEScatter(const supera::ImageMeta3D& meta,
-                                                      std::vector<supera::ParticleLabel>& labels) const
+    void LArTPCMLReco3D::MergeTouchingLEScatter(const supera::ImageMeta3D& meta,
+        std::vector<supera::ParticleLabel>& labels) const
     {
-        LOG_DEBUG() << "starting" << std::endl;
+        LOG_WARNING() << "starting" << std::endl;
+        std::vector<supera::SemanticType_t> priorities = {supera::kShapeShower, supera::kShapeMichel, supera::kShapeDelta,
+            supera::kShapeTrack, supera::kShapeGhost};
+
         size_t merge_ctr = 1;
         while (merge_ctr)
         {
@@ -1135,38 +1244,48 @@ namespace supera {
                     label.part.shape != supera::kShapeLEScatter)
                     continue;
 
-                if( label.part.type == supera::kNeutron )
+                if( label.part.type == supera::kNeutron || label.part.type == supera::kNucleus)
                     continue;
-
+                /*
                 auto const &parents = _mcpl.ParentTrackIdArray(label.part.trackid);
-
                 LOG_VERBOSE() << "Inspecting LEScatter Track ID " << StringifyTrackID(label.part.trackid)
                             << " PDG " << label.part.pdg
                             << " " << label.part.process << "\n";
                 LOG_VERBOSE() << "  ... parents:\n";
                 for(auto const& parent_trackid : parents)
                     LOG_VERBOSE() << "     "<< StringifyTrackID(parent_trackid) << "\n";
+                */
 
-                for(auto &dest : labels) {
-                    if(!dest.valid || dest.part.shape == supera::kShapeLEScatter)
-                        continue;
-                    if(this->IsTouching(meta, label.energy, dest.energy))
-                    {
-                        LOG_VERBOSE() << "Merging LEScatter track id = " << StringifyTrackID(label.part.trackid)
-                                    << " into touching non-LESCatter group (id=" << StringifyInstanceID(dest.part.group_id) << ")"
-                                    << " with track id = " << StringifyTrackID(dest.part.trackid) << "\n";
-                        this->MergeParticleLabel(labels,dest.part.trackid,label.part.trackid);
-                        merge_ctr++;
-                        break;
+                bool merged = false;
+                bool verbose = false;
+                // Try shower first
+                for(auto const& shape : priorities) {
+                    for(auto &dest : labels) {
+                        if(!dest.valid || dest.part.shape != shape)
+                            continue;
+                        if(this->IsTouching(meta, label.energy, dest.energy))
+                        {
+                            if(verbose)
+                            {
+                            LOG_WARNING() << "Merging LEScatter track id = " << StringifyTrackID(label.part.trackid)
+                                        << " into touching non-LESCatter group (id=" << StringifyInstanceID(dest.part.group_id) << ")"
+                                        << " with track id = " << StringifyTrackID(dest.part.trackid) << "\n";
+                            }
+                            this->MergeParticleLabel(labels,dest.part.trackid,label.part.trackid);
+                            merge_ctr++;
+                            merged=true;
+                            break;
+                        }
                     }
+                    if(merged) break;
                 }
             } // for (grp)
         } // while (merge_ctr)
-    } // LArTPCMLReco3D::MergeShowerTouchingLEScatter()
+    } // LArTPCMLReco3D::MergeTouchingLEScatter()
 
     // ------------------------------------------------------
 
-    bool LArTPCMLReco3D::IsTouching(const ImageMeta3D& meta, const VoxelSet& vs1, const VoxelSet& vs2) const
+    bool LArTPCMLReco3D::IsTouching(const ImageMeta3D& meta, const VoxelSet& vs1, const VoxelSet& vs2, bool verbose) const
     {
         LOG_DEBUG() << "starting" << std::endl;
         bool touching = false;
@@ -1203,9 +1322,10 @@ namespace supera {
                 if (iy1 > iy2) diffy = iy1 - iy2; else diffy = iy2 - iy1;
                 if (iz1 > iz2) diffz = iz1 - iz2; else diffz = iz2 - iz1;
                 touching = diffx <= _touch_threshold && diffy <= _touch_threshold && diffz <= _touch_threshold;
-                if (touching)
+                if (touching && verbose)
                 {
-                    LOG_VERBOSE()<<"Touching ("<<ix1<<","<<iy1<<","<<iz1<<") ("<<ix2<<","<<iy2<<","<<iz2<<")\n";
+                    LOG_INFO()<<"Touching ("<<ix1<<","<<iy1<<","<<iz1<<") ("<<ix2<<","<<iy2<<","<<iz2<<")\n";
+                    LOG_INFO()<<"    Dist ("<<diffx<<","<<diffy<<","<<diffz<<")\n";
                     break;
                 }
             }

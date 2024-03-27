@@ -51,8 +51,8 @@ namespace supera {
         void MergeShowerTouchingElectron(const supera::ImageMeta3D& meta,
                                          std::vector<supera::ParticleLabel>& labels) const;
 
-	    void MergeShowerTouchingLEScatter(const supera::ImageMeta3D& meta,
-    	                                  std::vector<supera::ParticleLabel>& labels) const;
+	    void MergeTouchingLEScatter(const supera::ImageMeta3D& meta,
+    	                            std::vector<supera::ParticleLabel>& labels) const;
 
         /// Identify and register a set of particles to be stored in the output
         void RegisterOutputParticles(const std::vector<TrackID_t> &trackid2index,
@@ -92,7 +92,7 @@ namespace supera {
         void DumpHierarchy(size_t trackid, const std::vector<supera::ParticleLabel>& inputLabels) const;
 
         /// Do the two given VoxelSets overlap at all?
-        bool IsTouching(const ImageMeta3D& meta, const VoxelSet& vs1, const VoxelSet& vs2) const;
+        bool IsTouching(const ImageMeta3D& meta, const VoxelSet& vs1, const VoxelSet& vs2, bool verbose=false) const;
 
         /// Return the input index from the track id
         Index_t InputIndex(const TrackID_t& tid) const

@@ -7,6 +7,32 @@
 #include <math.h>
 namespace supera{
 
+  std::string StringifyPoint3D(supera::Point3D pt){
+    std::string res;
+    if(pt.x==kINVALID_DOUBLE){
+        return "INVALID Point3D";
+    }else{
+        res += "(" + StringifyDouble(pt.x);
+        res += "," + StringifyDouble(pt.y);
+        res += "," + StringifyDouble(pt.z) + ") ";
+    }
+    return res;
+  }
+
+  std::string StringifyEDep(supera::EDep pt) {
+    std::string res;
+    if(pt.x==kINVALID_DOUBLE){
+        return "INVALID EDep";
+    }else{
+        res += "(" + StringifyDouble(pt.x);
+        res += "," + StringifyDouble(pt.y);
+        res += "," + StringifyDouble(pt.z) + ") ";
+        res += "E=" + StringifyDouble(pt.t) + " MeV ";
+        res += "dE/dX=" + StringifyDouble(pt.dedx) + " MeV/cm ";
+    }
+    return res;
+  }
+
   Point3D::Point3D()
     : x(kINVALID_DOUBLE), y(kINVALID_DOUBLE), z(kINVALID_DOUBLE)
   {}
