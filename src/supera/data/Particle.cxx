@@ -20,7 +20,8 @@ namespace supera {
     buf << "      ";
 
     ss<< buf.str() << "Vertex   (x, y, z, t) = (" << StringifyPoint3D(vtx.pos) << " T=" << vtx.time << std::endl
-      << buf.str() << "Momentum (px, py, pz) = (" << StringifyDouble(px) << "," 
+      << buf.str() << "Momentum (px, py, pz) = (" << StringifyDouble(px) << ","
+      << buf.str() << "Momentum (px_final, py_final, pz_final) = (" << px_final << "," << py_final << "," << pz_final << ")" << std::endl
       << StringifyDouble(py) << "," 
       << StringifyDouble(pz) << ")" << std::endl
       << buf.str() << "Initial  Energy  = " << StringifyDouble(energy_init) << std::endl
@@ -54,6 +55,9 @@ namespace supera {
     ss << instanceName << ".px = " << StringifyDouble(px) << ";\n";
     ss << instanceName << ".py = " << StringifyDouble(py) << ";\n";
     ss << instanceName << ".pz = " << StringifyDouble(pz) << ";\n";
+    ss << instanceName << ".px_final = " << px_final << ";\n";
+    ss << instanceName << ".py_final = " << py_final << ";\n";
+    ss << instanceName << ".pz_final = " << pz_final << ";\n";
     ss << instanceName << ".vtx = {" << StringifyDouble(vtx.pos.x) << ", "
                                      << StringifyDouble(vtx.pos.y) << ", "
                                      << StringifyDouble(vtx.pos.z) << ", "
@@ -116,6 +120,9 @@ namespace supera {
            (px == rhs.px) &&
            (py == rhs.py) &&
            (pz == rhs.pz) &&
+           (px_final == rhs.px_final) &&
+           (py_final == rhs.py_final) &&
+           (pz_final == rhs.pz_final) &&
            (vtx == rhs.vtx) &&
            (end_pt == rhs.end_pt) &&
            (first_step == rhs.first_step) &&
