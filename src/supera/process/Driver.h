@@ -2,6 +2,7 @@
 #define __SUPERA_DRIVER_H__
 
 #include "supera/data/Particle.h"
+#include "supera/data/Neutrino.h"
 #include "supera/data/ImageMeta3D.h"
 #include "supera/algorithm/BBoxBase.h"
 #include "supera/algorithm/LabelBase.h"
