@@ -3,6 +3,7 @@
 
 #include "Flash.h"
 #include "supera/base/meatloaf.h"
+#include <sstream>
 #include <numeric> // std::accumulate()
 
 namespace supera {
@@ -15,13 +16,13 @@ namespace supera {
       buf << "      ";
 
       ss << buf.str() << "time = (" << time << ")" << std::endl
-         << buf.str() << "tpc ID = (" << tpc ")" << std::endl;
+         << buf.str() << "tpc ID = (" << tpc << ")" << std::endl;
 
       return ss.str();
     }
 
     double Flash::TotalPE() const {
-        return std::accumulate(_PEPerOpDet.begin(), _PEPerOpDet.end(), 0.0);
+        return std::accumulate(PEPerOpDet.begin(), PEPerOpDet.end(), 0.0);
     }
 
 

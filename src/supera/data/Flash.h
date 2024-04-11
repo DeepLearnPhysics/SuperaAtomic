@@ -41,6 +41,7 @@ namespace supera {
         virtual ~Flash() {}
 
         double TotalPE() const;
+        std::string dump() const;
         
     public:
         
@@ -66,6 +67,6 @@ namespace supera {
 
     };
 
-
+}
 #endif
 /** @} */ // end of doxygen group
