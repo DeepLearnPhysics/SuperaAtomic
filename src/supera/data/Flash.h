@@ -28,7 +28,7 @@ namespace supera {
 
         /// Default constructor
         Flash(double time=0, double timeWidth=0, double absTime=0, unsigned int frame=0,
-            std::vector<double> PEPerOpDet=std::vector<double>(0), int tpc=-1,
+            std::vector<double> PEPerOpDet=std::vector<double>(0), unsigned int tpc=100,
             bool inBeamFrame=0, int onBeamTime=0, double fastToTotal=1,
             double xCenter=0, double xWidth=0,
             double yCenter=0, double yWidth=0,
@@ -47,7 +47,7 @@ namespace supera {
         /// Getters
         InstanceID_t id; ///< "ID" of this flash in FlashSet collection
         double time; ///< Time on @ref DetectorClocksHardwareTrigger "trigger time scale" [us]
-        int tpc;
+        unsigned int tpc;
         double timeWidth; ///< Width of the flash in time [us]
         double absTime; ///< Time by PMT readout clock
         unsigned int frame;  ///< Frame number
