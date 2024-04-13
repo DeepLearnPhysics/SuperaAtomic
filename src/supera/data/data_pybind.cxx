@@ -185,7 +185,7 @@ void init_data(pybind11::module& m)
       .def_readwrite("creation_process", &supera::Neutrino::creation_process, DOC(supera, Neutrino, creation_process))
       .def_readwrite("theta", &supera::Neutrino::theta, DOC(supera, Neutrino, theta))
       .def_readwrite("num_voxels", &supera::Neutrino::num_voxels, DOC(supera, Neutrino, num_voxels))
-}
+
 
   // classes from Flash.h
   pybind11::class_<supera::Flash>(m, "Flash", DOC(supera, Flash))
@@ -209,3 +209,5 @@ void init_data(pybind11::module& m)
       .def_readwrite("inBeamFrame", &supera::Flash::inBeamFrame, DOC(supera, Flash, inBeamFrame))
       .def_readwrite("onBeamTime", &supera::Flash::onBeamTime, DOC(supera, Flash, onBeamTime))
 #endif
+
+}
