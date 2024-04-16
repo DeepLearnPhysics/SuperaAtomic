@@ -43,47 +43,7 @@ namespace supera {
 
         double TotalPE() const;
 
-        /// Getters
-        inline InstanceID_t id         () const { return _id;         }
-        inline double time () const { return _time; }
-        inline unsigned int tpc () const { return _tpc; }
-        inline double timeWidth () const { return _timeWidth; }
-        inline double absTime () const { return _absTime; }
-        inline unsigned int frame () const { return _frame; }
-        inline const std::vector<double>& PEPerOpDet () const { return _PEPerOpDet; }
-        inline const std::vector<double>& wireCenters () const { return _wireCenters; }
-        inline const std::vector<double>& wireWidths () const { return _wireWidths; }
-        inline double xCenter () const { return _xCenter; }
-        inline double xWidth () const { return _xWidth; }
-        inline double yCenter () const { return _yCenter; }
-        inline double yWidth () const { return _yWidth; }
-        inline double zCenter () const { return _zCenter; }
-        inline double zWidth () const { return _zWidth; }
-        inline double fastToTotal () const { return _fastToTotal; }
-        inline bool inBeamFrame () const { return _inBeamFrame; }
-        inline int onBeamTime () const { return _onBeamTime; }
-
-        /// Setters
-        inline void id (InstanceID_t id  )  { _id = id;         }
-        inline void time (double time) { _time = time; }
-        inline void tpc (unsigned int tpc) { _frame = tpc; }
-        inline void timeWidth (double timeWidth) { _timeWidth = timeWidth; }
-        inline void absTime (double absTime) { _absTime = absTime; }
-        inline void frame (unsigned int frame) { _frame = frame; }
-        inline void PEPerOpDet(const std::vector<double>& PEPerOpDet) { _PEPerOpDet = PEPerOpDet; }
-        inline void wireCenters(const std::vector<double>& wireCenters) { _wireCenters = wireCenters; }
-        inline void wireWidths(const std::vector<double>& wireWidths) { _wireWidths = wireWidths; }
-        inline void xCenter (double xCenter) { _xCenter = xCenter; }
-        inline void xWidth (double xWidth) { _xWidth = xWidth; }
-        inline void yCenter (double yCenter) { _yCenter = yCenter; }
-        inline void yWidth (double yWidth) { _yWidth = yWidth; }
-        inline void zCenter (double zCenter) { _zCenter = zCenter; }
-        inline void zWidth (double zWidth) { _zWidth = zWidth; }
-        inline void fastToTotal (double fastToTotal) { _fastToTotal = fastToTotal; }
-        inline void inBeamFrame (bool inBeamFrame) { _inBeamFrame = inBeamFrame; }
-        inline void onBeamTime (int onBeamTime) { _onBeamTime = onBeamTime; }
-
-    private:
+    public:
         // See also https://internal.dunescience.org/doxygen/OpFlash_8h_source.html
         // Mirroring it to facilitate Larsoft recob::OpFlash -> larcv -> CAF translation
 
@@ -107,43 +67,6 @@ namespace supera {
         int _onBeamTime; ///< Is this in time with beam?
     };
 
-    class FlashInput {
-    public:
-
-      FlashInput() : valid(true) {}
- 
-    //  std::string dump2cpp(const std::string & instanceName = "partInput") const;
-
-      supera::Flash flashev;    ///< a flash information
-      bool valid;
-    };
-
-    /**
-       \class FlashSet
-       \brief Flash/Interaction collection
-    */
-    class FlashSet {
-    public:
-      FlashSet() {}
-      virtual ~FlashSet() {}
-
-      void clear() { _flash_v.clear(); }
-
-      inline const std::vector<supera::Flash>& as_vector() const
-      { return _flash_v; }
-
-      void set(const std::vector<supera::Flash>& flash_v);
-
-      void append(const supera::Flash& flash);
-
-      void emplace_back(supera::Flash&& flash);
-
-      void emplace(std::vector<supera::Flash>&& flash_v);
-
-    private:
-
-      std::vector<supera::Flash> _flash_v; ///< a collection of flashes (index maintained)
-    };
 }
 
 #endif

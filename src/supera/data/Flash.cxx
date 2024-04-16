@@ -42,35 +42,5 @@ namespace supera {
         return std::accumulate(_PEPerOpDet.begin(), _PEPerOpDet.end(), 0.0);
     }
 
-    void FlashSet::set(const std::vector<supera::Flash>& flash_v)
-    {
-      _flash_v = flash_v;
-      for(size_t i=0; i<_flash_v.size(); ++i)
-        if(_flash_v.back().id() == kINVALID_INSTANCEID)
-          _flash_v[i].id(i);
-    }
-
-    void FlashSet::append(const supera::Flash& flash)
-    {
-      _flash_v.push_back(flash);
-      if(_flash_v.back().id() == kINVALID_INSTANCEID)
-        _flash_v.back().id(_flash_v.size()-1);
-    }
-
-    void FlashSet::emplace_back(supera::Flash&& flash)
-    {
-      _flash_v.emplace_back(std::move(flash));
-      if(_flash_v.back().id() == kINVALID_INSTANCEID)
-        _flash_v.back().id(_flash_v.size()-1);
-    }
-
-    void FlashSet::emplace(std::vector<supera::Flash>&& flash_v)
-    {
-      _flash_v = std::move(flash_v);
-      for(size_t i=0; i<_flash_v.size(); ++i) {
-        if(_flash_v[i].id() == kINVALID_INSTANCEID)
-          _flash_v[i].id(i);
-      }
-    }
 }
 #endif
