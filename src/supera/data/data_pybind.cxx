@@ -186,11 +186,10 @@ void init_data(pybind11::module& m)
       .def_readwrite("theta", &supera::Neutrino::theta, DOC(supera, Neutrino, theta))
       .def_readwrite("num_voxels", &supera::Neutrino::num_voxels, DOC(supera, Neutrino, num_voxels))
 
-
+    
   // classes from Flash.h
   pybind11::class_<supera::Flash>(m, "Flash", DOC(supera, Flash))
       .def(pybind11::init<>(), DOC(supera, Flash, Flash))
-      .def("TotalPE", &supera::Particle::TotalPE, DOC(supera, Particle, TotalPE))
       .def_readwrite("id", &supera::Flash::id, DOC(supera, Flash, id))
       .def_readwrite("time", &supera::Flash::time, DOC(supera, Flash, time))
       .def_readwrite("tpc", &supera::Flash::tpc, DOC(supera, Flash, tpc))
@@ -208,6 +207,17 @@ void init_data(pybind11::module& m)
       .def_readwrite("fastToTotal", &supera::Flash::fastToTotal, DOC(supera, Flash, fastToTotal))
       .def_readwrite("inBeamFrame", &supera::Flash::inBeamFrame, DOC(supera, Flash, inBeamFrame))
       .def_readwrite("onBeamTime", &supera::Flash::onBeamTime, DOC(supera, Flash, onBeamTime))
+      
+  pybind11::class_<supera::FlashSet>(m, "FlashSet", DOC(supera, FlashSet))
+      // constructors
+      .def(pybind11::init<>(), DOC(supera, FlashSet, FlashSet))
+      .def(pybind11::init<const supera::FlashSet&>(), DOC(supera, FlashSet, FlashSet, 2))
+      .def("clear", &supera::FlashSet::clear, DOC(supera, FlashSet, clear))
+      .def("set", &supera::FlashSet::set, DOC(supera, FlashSet, set))
+      .def("append", &supera::FlashSet::append, DOC(supera, FlashSet, append))
+      .def("emplace_back", &supera::FlashSet::emplace_back, DOC(supera, FlashSet, emplace_back))
+      .def("emplace", &supera::FlashSet::emplace, DOC(supera, FlashSet, emplace))
+
 #endif
 
 }
