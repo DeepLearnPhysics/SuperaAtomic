@@ -37,7 +37,7 @@ namespace supera {
       , type             (kInvalidProcess)
       , shape            (kShapeUnknown)
       , trackid          (kINVALID_TRACKID)
-      , primary          (false)
+      , genid            (kINVALID_TRACKID)
       , pdg              (kINVALID_PDG)
       , px               (0.)
       , py               (0.)
@@ -81,7 +81,7 @@ namespace supera {
     ProcessType_t  type;        ///< Creation process type
     SemanticType_t shape;       ///< Semantic type info
     TrackID_t      trackid;     ///< Geant4 track id
-    bool           primary;       ///< bool to identify a primary particle
+    TrackID_t      genid;       ///< Original generator ID, if different than Geant4 (e.g.: GENIE particle ID)
     PdgCode_t      pdg;         ///< PDG code
     double         px,py,pz;    ///< (x,y,z) component of particle's initial momentum
     double         end_px, end_py, end_pz;          ///< (x,y,z) component of particle's final momentum
