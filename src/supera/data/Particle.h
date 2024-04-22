@@ -37,13 +37,14 @@ namespace supera {
       , type             (kInvalidProcess)
       , shape            (kShapeUnknown)
       , trackid          (kINVALID_TRACKID)
+      , genid            (kINVALID_TRACKID)
       , pdg              (kINVALID_PDG)
       , px               (0.)
       , py               (0.)
       , pz               (0.)
-      , px_end         (kINVALID_DOUBLE)
-      , py_end         (kINVALID_DOUBLE)
-      , pz_end         (kINVALID_DOUBLE)
+      , end_px           (kINVALID_DOUBLE)
+      , end_py           (kINVALID_DOUBLE)
+      , end_pz           (kINVALID_DOUBLE)
       , dist_travel      (-1)
       , energy_init      (0.)
       , energy_deposit   (0.)
@@ -68,7 +69,7 @@ namespace supera {
     bool operator!=(const Particle & rhs) const { return !(*this == rhs); }
 
     inline double p() const { return sqrt(pow(px,2)+pow(py,2)+pow(pz,2)); }
-    inline double p_end() const { return sqrt(pow(px_end, 2) + pow(py_end, 2) + pow(pz_end, 2)); }
+    inline double end_p() const { return sqrt(pow(end_px, 2) + pow(end_py, 2) + pow(end_pz, 2)); }
     std::string dump() const;
 
     /// Dump this Particle into C++ code that could rebuild it.
@@ -80,9 +81,10 @@ namespace supera {
     ProcessType_t  type;        ///< Creation process type
     SemanticType_t shape;       ///< Semantic type info
     TrackID_t      trackid;     ///< Geant4 track id
+    TrackID_t      genid;
     PdgCode_t      pdg;         ///< PDG code
     double         px,py,pz;    ///< (x,y,z) component of particle's initial momentum
-    double         px_end, py_end, pz_end; ///< (x,y,z) component of particle's final momentum
+    double         end_px, end_py, end_pz; ///< (x,y,z) component of particle's final momentum
     Vertex         vtx;         ///< (x,y,z,t) of particle's vertex information
     Vertex         end_pt;      ///< (x,y,z,t) at which particle disappeared from G4WorldVolume
     Vertex         first_step;  ///< (x,y,z,t) of the first energy deposition point in the detector

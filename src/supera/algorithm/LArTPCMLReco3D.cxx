@@ -122,12 +122,20 @@ namespace supera {
         this->ApplyEnergyThreshold(labels);
         this->SetSemanticType(labels);
         this->MergeShowerConversion(labels); // merge supera::kConversion a photon merged to a parent photon
+        this->MergeTouchingLEScatter(meta,labels);
         this->MergeShowerFamilyTouching(meta, labels); // merge supera::kShapeShower to touching parent shower/delta/michel
         this->MergeShowerTouching(meta, labels); // merge supera::kShapeShower to touching shower in the same family tree
-        this->MergeTouchingLEScatter(meta,labels);
+
+        for(auto& p : labels) {
+            if(p.part.trackid !=144) continue;
+            LOG_WARNING() << "Track ID " << p.part.trackid << " shape " << p.part.shape << std::endl;
+        }
+        //this->MergeTouchingLEScatter(meta,labels);
         
-        // ** TODO consider this separate from MergeShowerIonizations?? **
-        this->MergeDeltas(labels); // merge supera::kDelta to a parent if too small
+        for(auto& p : labels) {
+            if(p.part.trackid !=144) continue;
+            LOG_WARNING() << "Track ID " << p.part.trackid << " shape " << p.part.shape << std::endl;
+        }
 
         // Re-classify small photons into ShapeLEScatter
         for(auto& label : labels) {
@@ -136,6 +144,10 @@ namespace supera {
             if(label.energy.size() < _compton_size)
                 label.part.shape = supera::kShapeLEScatter;
         }
+        this->MergeTouchingLEScatter(meta,labels);
+
+        // ** TODO consider this separate from MergeShowerIonizations?? **
+        this->MergeDeltas(labels); // merge supera::kDelta to a parent if too small
 
         // After all merging is 
 
@@ -148,13 +160,36 @@ namespace supera {
         std::vector<supera::TrackID_t> output2trackid;  // reverse of above.
         output2trackid.reserve(trackid2index.size());
         
+        for(auto& p : labels) {
+            if(p.part.trackid !=144) continue;
+            LOG_WARNING() << "Track ID " << p.part.trackid << " shape " << p.part.shape << std::endl;
+        }
+
         this->RegisterOutputParticles(trackid2index, labels, output2trackid, trackid2output);
 
+        for(auto& p : labels) {
+            if(p.part.trackid !=144) continue;
+            LOG_WARNING() << "Track ID " << p.part.trackid << " shape " << p.part.shape << std::endl;
+        }
+
         this->SetGroupID(labels);
+        for(auto& p : labels) {
+            if(p.part.trackid !=144) continue;
+            LOG_WARNING() << "Track ID " << p.part.trackid << " shape " << p.part.shape << std::endl;
+        }
 
         this->SetAncestorAttributes(labels);
 
+        for(auto& p : labels) {
+            if(p.part.trackid !=144) continue;
+            LOG_WARNING() << "Track ID " << p.part.trackid << " shape " << p.part.shape << std::endl;
+        }
         this->SetInteractionID(labels);
+
+        for(auto& p : labels) {
+            if(p.part.trackid !=144) continue;
+            LOG_WARNING() << "Track ID " << p.part.trackid << " shape " << p.part.shape << std::endl;
+        }
 
         // Convert unassociated energy depositions into voxel set 
         supera::VoxelSet unass;
@@ -985,6 +1020,7 @@ namespace supera {
                             << " PDG " << parent.part.pdg << " " << parent.part.process << "\n";
 
             }
+
         }
     } // LArTPCMLReco3D::MergeShowerDeltas()
     // ------------------------------------------------------
@@ -1120,8 +1156,6 @@ namespace supera {
                     if (label_b.part.shape != supera::kShapeShower) continue;
 
                     bool verbose = false;
-                    verbose = (label_a.part.trackid == 13632 || label_b.part.trackid == 13632);
-                    verbose = verbose && (label_a.part.trackid == 11702 || label_b.part.trackid == 11702);
                     if(verbose)
                         LOG_WARNING() << "Inspecting track ID" << label_a.part.trackid << std::endl;
 
@@ -1239,7 +1273,7 @@ namespace supera {
             {
                 //if (!label.valid || label.energy.size() < 1 || label.shape() != supera::kShapeLEScatter) continue;
                 if( !label.valid || label.energy.size()<1 || 
-                    label.energy.size()>_lescatter_size ||
+                    //label.energy.size()>_lescatter_size ||
                     label.part.shape != supera::kShapeLEScatter)
                     continue;
 
@@ -1262,9 +1296,13 @@ namespace supera {
                     for(auto &dest : labels) {
                         if(!dest.valid || dest.part.shape != shape)
                             continue;
+
+                        if(label.part.trackid==144) {
+                            LOG_WARNING() << "Inspecting track ID 24 touching against track ID " <<dest.part.trackid << std::endl;
+                        }
                         if(this->IsTouching(meta, label.energy, dest.energy))
                         {
-                            if(verbose)
+                            if(verbose || label.part.trackid==144)
                             {
                             LOG_WARNING() << "Merging LEScatter track id = " << StringifyTrackID(label.part.trackid)
                                         << " into touching non-LESCatter group (id=" << StringifyInstanceID(dest.part.group_id) << ")"
@@ -1274,9 +1312,14 @@ namespace supera {
                             merge_ctr++;
                             merged=true;
                             break;
+                        }else if(label.part.trackid==144){
+                            LOG_WARNING() << "Not touching" << std::endl;
                         }
                     }
                     if(merged) break;
+                }
+                if(label.part.trackid==144){
+                    LOG_WARNING() << "Track ID 24 merged? " << merged << std::endl;
                 }
             } // for (grp)
         } // while (merge_ctr)
