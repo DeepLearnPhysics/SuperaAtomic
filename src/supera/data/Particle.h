@@ -148,16 +148,21 @@ namespace supera {
     ParticleInput() : valid(true) {}
 
     std::string dump2cpp(const std::string & instanceName = "partInput") const;
-
+    supera::InstanceID_t id;  ///< a unique integer ID for an input instance
+    supera::InstanceID_t parent_id; ///< a unique integer ID for the parent of an input instance
+    supera::InstanceID_t ancestor_id; ///< a unique integer ID for the ancestor of an input instance
+    supera::InstanceID_t interaction_id; ///< a unique interger ID for the group of particles with the common origin
     supera::Particle part;    ///< a particle information
     std::vector<EDep> pcloud; ///< 3D energy deposition information per particle
     bool valid;
   };
 
-  class EventInput : public std::vector<ParticleInput> {
+  class EventInput : public std::vector<ParticleInput>{
   public:
     /// 3D energy depositions unassociated to any input particle
     std::vector<EDep> unassociated_edeps;
+
+    bool IntegrityCheck() const;
   };
 
   class ParticleLabel {
@@ -183,9 +188,12 @@ namespace supera {
 
     supera::Particle part;            ///< a particle information
     bool valid;                       ///< a state flag whether this particle should be ignored or not
-    std::vector<TrackID_t> merged_v;  ///< track ID of descendent particles that are merged
-    std::vector<TrackID_t> parent_trackid_v; ///< track ID of parent particles in the history
-    TrackID_t merge_id;               ///< a track ID of the particle to which this one is merged
+    InstanceID_t id;                  ///< instance ID of itself
+    InstanceID_t parent_id;           ///< instance ID of the parent
+    InstanceID_t ancestor_id;         ///< instance ID of the ancestor
+    std::vector<InstanceID_t> merged_v;    ///< instance ID of descendent particles that are merged
+    std::vector<InstanceID_t> parent_id_v; ///< instance ID of parent particles in the history
+    InstanceID_t merge_id;                 ///< a track ID of the particle to which this one is merged
     supera::VoxelSet energy;          ///< 3D voxels (energy deposition)
     supera::VoxelSet dedx;            ///< 3D voxels (dE/dX)
     EDep first_pt;                    ///< first energy deposition point (not voxel)

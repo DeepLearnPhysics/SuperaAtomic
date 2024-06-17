@@ -249,40 +249,15 @@ namespace supera {
       //std::cout<<child.dump2cpp()<<std::endl;
       this->UpdateLastPoint(child.last_pt);
     }
-    this->merged_v.push_back(child.part.trackid);
-    for(auto const& trackid : child.merged_v)
-      this->merged_v.push_back(trackid);
+    this->merged_v.push_back(child.id);
+    for(auto const& id : child.merged_v)
+      this->merged_v.push_back(id);
 
     child.energy.clear_data();
     child.dedx.clear_data();
     child.valid=false;
-    child.merge_id=this->part.trackid;
+    child.merge_id=this->id;
   }
-
-  // semantic classification (supera::SemanticType_t)
-  
-  /*
-  supera::SemanticType_t ParticleLabel::shape() const
-  {
-
-    if(type == kInvalidProcess) return supera::kShapeUnknown;
-    if(type == kDelta) return supera::kShapeDelta;
-    if(type == kNeutron) //return supera::kShapeUnknown;
-
-    if(part.pdg == 11 || part.pdg == 22 || part.pdg == -11) {
-      if(type == kCompton || type == kPhoton || type == kPrimary || type == kConversion || type==kOtherShower)
-        return supera::kShapeShower;
-      if(type == kDecay) {
-        if(part.parent_pdg == 13 || part.parent_pdg == -13)
-          return supera::kShapeMichel;
-        else
-          return supera::kShapeShower;
-      }
-      return supera::kShapeLEScatter;
-    }else
-    return supera::kShapeTrack;
-  }
-*/
 
   std::string ParticleLabel::dump2cpp(const std::string &instanceName) const
   {
@@ -340,100 +315,16 @@ namespace supera {
     st << "  num voxels: " << energy.size() << "\n";
     st << "  first step: " << StringifyEDep(first_pt) << "\n";
     st << "  last  step: " << StringifyEDep(last_pt) << "\n";
-    st << "  merged into track ID: " << StringifyTrackID(merge_id) << "\n";
-    st << "  merged track IDs: ";
-    for (const TrackID_t tk : merged_v)
-      st << tk << " ";
+    st << "  merged into instance ID: " << merge_id << "\n";
+    st << "  merged instance IDs: ";
+    for (auto const& id : merged_v)
+      st << id << " ";
     st << "\n";
     st << "  Particle:\n";
     st << part.dump() << "\n";
 
     return st.str();
   }
-
-  // --------------------------------------------------------
-  /*
-  const supera::VoxelSet &EventOutput::VoxelDeDxs() const
-  {
-    // recompute only if particle list has changed under us
-    if (IsDirty(DIRTY_FLAG::kDeDx))
-    {
-      // we want an energy-weighted mean here.
-      // first add all the dEdXs up, weighted by their energies...
-      supera::VoxelSet dEdXs;
-      for (const supera::ParticleLabel & part : Particles())
-      {
-        for (const supera::Voxel & dedx : part.dedx.as_vector())
-          dEdXs.emplace(dedx.id(), dedx.value() * VoxelEnergies().find(dedx.id()).value(), true);
-      }
-
-      // now renormalize them...
-      for (const supera::Voxel & dedx : dEdXs.as_vector())
-      {
-        auto energy = VoxelEnergies().find(dedx.id()).value();
-        if (energy > 0)
-          dEdXs.emplace(dedx.id(), dedx.value() / energy, false);
-      }
-
-      _dEdXs = std::move(dEdXs);
-    } // if (IsDirty(...))
-
-    return _dEdXs;
-  }
-  
-  // --------------------------------------------------------
-
-  const supera::VoxelSet &EventOutput::VoxelEnergies() const
-  {
-    // recompute only if particle list has changed under us
-    if (IsDirty(DIRTY_FLAG::kEnergy))
-    {
-      supera::VoxelSet energies;
-      for (const supera::ParticleLabel & part : Particles())
-        energies.emplace(part.energy, true);
-      _energies = std::move(energies);
-    }
-
-    return _energies;
-  }
-
-  // --------------------------------------------------------
-  
-  const supera::VoxelSet &
-  EventOutput::VoxelLabels(const std::vector<supera::SemanticType_t> &semanticPriority) const
-  {
-    // recompute only if particle list has changed under us
-    if (IsDirty(DIRTY_FLAG::kLabel))
-    {
-      supera::VoxelSet semantics;
-      for (const supera::ParticleLabel & part : Particles())
-      {
-        auto const &vs = part.energy;
-        SemanticType_t semantic = part.part.shape;
-        for (auto const &vox : vs.as_vector())
-        {
-          auto const &prev = semantics.find(vox.id());
-          if (prev.id() == supera::kINVALID_VOXELID)
-            semantics.emplace(vox.id(), semantic, false);
-          else
-          {
-            // todo: what if the new voxel has 10x the energy??
-            SemanticType_t prioritized_semantic = EventOutput::_SemanticPriority(static_cast<SemanticType_t>(prev.value()), semantic, semanticPriority);
-            if (prioritized_semantic != static_cast<SemanticType_t>(prev.value()))
-              semantics.emplace(vox.id(), semantic, false);
-          }
-        } // for (vox)
-      } // for (part)
-
-      _semanticLabels = std::move(semantics);
-    } // if (IsDirty(...))
-
-    return _semanticLabels;
-  }
-*/
-  // --------------------------------------------------------
-
-
 
   const ParticleLabel& EventOutput::Particle(InstanceID_t id) const
   {
@@ -463,6 +354,53 @@ namespace supera {
         return b;
     }
     return a;
+  }
+
+  bool EventInput::IntegrityCheck() const
+  {
+    for(size_t i=0; i<this->size(); ++i) {
+      auto const& part = (*this)[i];
+      if(part.id != i) {
+        std::cerr<<"[EventInput::IntegrityCheck] ID="<<part.id<<" mismatch with the index="<<i<<std::endl;
+        return false;
+      }
+      if(part.id == kINVALID_INSTANCEID){
+        std::cerr<<"[EventInput::IntegrityCheck] ID="<<part.id<<" is INVALID value"<<std::endl;
+        return false;
+      }
+      if(part.interaction_id == kINVALID_INSTANCEID){
+        std::cerr<<"[EventInput::IntegrityCheck] Interaction ID="<<part.interaction_id<<" is INVALID value"<<std::endl;
+        return false;
+      }
+
+      if(part.id != part.parent_id) {
+        bool parent_found=false;
+        for(auto const& parent : (*this)) {
+          if(parent.id != part.parent_id)
+            continue;
+          parent_found=true;
+          break;
+        }
+        if(!parent_found) {
+          std::cerr<<"[EventInput::IntegrityCheck] Parent ID"<<part.parent_id<<" not found in the collection!"<<std::endl;
+          return false;
+        }
+      }
+      if(part.id != part.ancestor_id) {
+        bool ancestor_found=false;
+        for(auto const& ancestor : (*this)) {
+          if(ancestor.id != part.ancestor_id)
+            continue;
+          ancestor_found=true;
+          break;
+        }
+        if(!ancestor_found) {
+          std::cerr<<"[EventInput::IntegrityCheck] Ancestor ID"<<part.ancestor_id<<" not found in the collection!"<<std::endl;
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   // --------------------------------------------------------
