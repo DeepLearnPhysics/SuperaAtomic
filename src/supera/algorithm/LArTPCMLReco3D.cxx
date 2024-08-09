@@ -148,14 +148,14 @@ namespace supera {
                 label.part.shape = supera::kShapeLEScatter;
         }
         this->MergeTouchingLEScatter(meta,labels);
-	// Re-classify large ShapeLEScatter into shower
-	for(auto& label : labels) {
-	  if(!label.valid) continue;
-	  if(label.part.shape != supera::kShapeLEScatter) continue;
-	  if(label.energy.size() < _compton_size)
-	    continue;
-	  label.part.shape = supera::kShapeShower;
-	}
+    	// Re-classify large ShapeLEScatter into shower
+    	for(auto& label : labels) {
+    	  if(!label.valid) continue;
+    	  if(label.part.shape != supera::kShapeLEScatter) continue;
+    	  if(label.energy.size() < _compton_size)
+    	    continue;
+    	  label.part.shape = supera::kShapeShower;
+        }
 
         // ** TODO consider this separate from MergeShowerIonizations?? **
         this->MergeDeltas(labels); // merge supera::kDelta to a parent if too small
@@ -776,54 +776,80 @@ namespace supera {
         //
         // Handle unassociated_edeps in EventInput
         //
-        unassociated_voxels.clear_data();
-        unassociated_voxels.reserve(evtInput.unassociated_edeps.size());
-        supera::VoxelSet unassociated_dedx;
-        unassociated_dedx.reserve(evtInput.unassociated_edeps.size());
+
+        std::vector<supera::VoxelSet> unassociated_dedx_v;
+        std::vector<supera::VoxelSet> unassociated_vox_v;
+
+        unassociated_dedx_v.resize(evtInput.unassociated_edeps.size());
+        unassociated_vox_v.resize(evtInput.unassociated_edeps.size());
+
         size_t invalid_unass_ctr=0;
-        for(auto const& edep : evtInput.unassociated_edeps) {
+        size_t valid_unass_ctr=0;
+        for(size_t cidx=0; cidx<evtInput.unassociated_edeps.size(); ++cidx) {
 
-            auto vox_id = meta.id(edep);
-            if(vox_id == supera::kINVALID_VOXELID) {
-                invalid_unass_ctr++;
-                continue;
+            auto const& input_cluster = evtInput.unassociated_edeps[cidx];
+            auto& dedx_cluster = unassociated_dedx_v[cidx];
+            auto& vox_cluster  = unassociated_vox_v[cidx];
+
+            dedx_cluster.reserve(input_cluster.size());
+            vox_cluster.reserve(input_cluster.size());
+
+            for(auto const& edep : input_cluster) {
+
+                auto vox_id = meta.id(edep);
+                if(vox_id == supera::kINVALID_VOXELID) {
+                    invalid_unass_ctr++;
+                    continue;
+                }
+                vox_cluster.emplace(vox_id, edep.e, true);
+                dedx_cluster.emplace(vox_id, edep.dedx, true);
+                valid_unass_ctr++;
             }
-            unassociated_voxels.emplace(vox_id, edep.e, true);
-            unassociated_dedx.emplace(vox_id, edep.dedx, true);
         }
-
         if(invalid_unass_ctr){
             LOG_WARNING() << invalid_unass_ctr << "/" << evtInput.unassociated_edeps.size()
             << " unassociated packets are ignored (outside BBox)" << std::endl;
         }
 
 
-        if(_merge_unassociated_edeps) {
+        if(!_merge_unassociated_edeps) {
+            unassociated_voxels.reserve(valid_unass_ctr);
+            for(auto const& cluster : unassociated_vox_v) {
+                for(auto const& vox : cluster.as_vector()) {
+                    unassociated_voxels.add(vox);
+                }
+            }
+
+        }else{
             VoxelSet unass_after;
-            unass_after.reserve(unassociated_voxels.size());
-            supera::VoxelSet vs_a;
+            unass_after.reserve(valid_unass_ctr);
 
-            for(size_t i=0; i<unassociated_voxels.size(); ++i) {
+            for(size_t cidx=0; cidx<unassociated_vox_v.size(); cidx++) {
 
-                auto const& vox_edep = unassociated_voxels.as_vector()[i];
-                auto const& vox_dedx = unassociated_dedx.as_vector()[i];
-
-                vs_a.clear_data();
-                vs_a.insert(vox_edep);
-                // Loop over particles in the descending order of the cluster size
-                for(auto const& idx : sort_by_voxel_count(labels)) {
-                    auto& label = labels[idx];
-                    if(this->IsTouching(meta,vs_a,label.energy)) {
-                        label.energy.add(vox_edep);
-                        label.dedx.add(vox_dedx);
-                        vs_a.clear_data();
+                auto const& vox_vs  = unassociated_vox_v[cidx];
+                auto const& dedx_vs = unassociated_dedx_v[cidx];
+                bool merged=false;
+                for(auto const& lidx : sort_by_voxel_count(labels)) {
+                    auto& label = labels[lidx];
+                    if(this->IsTouching(meta, vox_vs,label.energy)) {
+                        //merge
+                        auto const& vox_v = vox_vs.as_vector();
+                        auto const& dedx_v = dedx_vs.as_vector();
+                        for(size_t ivox=0; ivox<vox_v.size(); ++ivox) {
+                            label.energy.add(vox_v[ivox]);
+                            label.dedx.add(dedx_v[ivox]);
+                        }
+                        merged=true;
                         break;
                     }
                 }
-                if(vs_a.size())
-                    unass_after.add(vox_edep);
-
+                if(!merged) {
+                    for(auto const& vox : vox_vs.as_vector()) {
+                        unass_after.add(vox);
+                    }
+                }
             }
+            LOG_WARNING() << "Unassociated voxels " << valid_unass_ctr << " => " << unass_after.size() << std::endl;
             unassociated_voxels=unass_after;
         }
         LOG_INFO() << "done" << std::endl;

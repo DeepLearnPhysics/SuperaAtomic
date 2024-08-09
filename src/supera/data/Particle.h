@@ -159,8 +159,8 @@ namespace supera {
 
   class EventInput : public std::vector<ParticleInput>{
   public:
-    /// 3D energy depositions unassociated to any input particle
-    std::vector<EDep> unassociated_edeps;
+    /// Clustered 3D energy depositions unassociated to any input particle
+    std::vector<std::vector<EDep> > unassociated_edeps;
 
     bool IntegrityCheck() const;
   };
