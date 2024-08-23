@@ -1,4 +1,4 @@
-#ifdef BUILD_PYTHON_BINDINGS
+#ifdef WITH_PYBIND
 
 #include "data_pybind.h"
 

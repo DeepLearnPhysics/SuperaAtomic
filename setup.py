@@ -8,11 +8,22 @@ with io.open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 # default no pybind
-nopybind_value='ON'
+with_python='ON'
+with_pybind='OFF'
+
 if 'SUPERA_WITHOUT_PYTHON' in os.environ and eval(os.environ['SUPERA_WITHOUT_PYTHON']):
-    nopybind_value='ON'
-if 'SUPERA_WITH_PYTHON' in os.environ and eval(os.environ['SUPERA_WITH_PYTHON']):
-    nopybind_value='OFF'
+    with_python=with_pybind='OFF'
+if 'SUPERA_WITH_PYTHON' in os.environ:
+    if eval(os.environ['SUPERA_WITH_PYTHON']):
+        with_python='ON'
+    else:
+        with_python='OFF'
+
+if 'SUPERA_WITH_PYBIND' in os.environ and eval(os.environ['SUPERA_WITH_PYBIND']):
+    with_pybind='ON'
+    if with_python == 'OFF':
+        print('WARNING: SUPERA_WITH_PYBIND is positive and PYTHON is enabled althought it was set OFF')
+        with_python = 'ON'
     
 
 
@@ -24,7 +35,8 @@ setup(
     cmake_args=[
         #'-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON',
         '-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9',
-        '-DWITHOUT_PYTHON={}'.format(nopybind_value),
+        '-DWITH_PYTHON={}'.format(with_python),
+        '-DWITH_PYBIND={}'.format(with_pybind),
     ],
     author=['Corey Adams', 'Kazuhiro Terao', 'Taritree Wongjirad', 'Marco Del Tutto', 'Jeremy Wolcott'],
     author_email='kterao@slac.stanford.edu',

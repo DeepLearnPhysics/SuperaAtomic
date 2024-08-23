@@ -32,7 +32,7 @@ target_link_libraries(supera
     #-L${LARCV_LIB_DIR} -llarcv3
   )
 
-if(NOT WITHOUT_PYTHON)
+if(WITH_PYBIND)
     ###############################
     # Python binding (via pybind11)
     ###############################
@@ -103,7 +103,7 @@ install(TARGETS supera
     #INCLUDES DESTINATION include
   )
 
-if(NOT WITHOUT_PYTHON)
+if(WITH_PYBIND)
     install(TARGETS pysupera
         LIBRARY DESTINATION ${CMAKE_PACKAGE_DIR}/lib
         ARCHIVE DESTINATION ${CMAKE_PACKAGE_DIR}/lib

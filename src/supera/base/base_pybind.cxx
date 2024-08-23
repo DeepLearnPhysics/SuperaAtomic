@@ -1,4 +1,4 @@
-#ifdef BUILD_PYTHON_BINDINGS
+#ifdef WITH_PYBIND
 #include "base_pybind.h"
 #include "SuperaType.h"
 #include "Point.h"

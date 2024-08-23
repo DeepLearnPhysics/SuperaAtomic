@@ -18,7 +18,7 @@ include_directories("./")
 
 message("    Configuring Supera build")
 
-if(NOT WITHOUT_PYTHON)
+if(WITH_PYTHON)
     add_definitions(-DBUILD_PYTHON_BINDINGS)
     #########
     # Python
@@ -58,26 +58,28 @@ if(NOT WITHOUT_PYTHON)
     message("    INCLUDE: " ${PYTHON_NUMPY_INCLUDE_DIR})
     include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
 
-    ####################################
-    # Add pybind11
-    ####################################
-    add_subdirectory(pybind11)
-    message("    Adding pybind11")
-    message("    INCLUDE: " ${PYBIND11_INCLUDE_DIR})
-    include_directories(${PYBIND11_INCLUDE_DIR})
+    if(WITH_PYBIND)
+        ####################################
+        # Add pybind11
+        ####################################
+        add_subdirectory(pybind11)
+        message("    Adding pybind11")
+        message("    INCLUDE: " ${PYBIND11_INCLUDE_DIR})
+        include_directories(${PYBIND11_INCLUDE_DIR})
 
-    ####################################
-    # Check if pybind11_mkdoc is around
-    ####################################
-    execute_process(
-            COMMAND "${Python_EXECUTABLE}" -c "import pybind11_mkdoc"
-            RESULT_VARIABLE PYBIND11_MKDOC_EXIT_CODE
-    )
-    if (${PYBIND11_MKDOC_EXIT_CODE} EQUAL 0)
-        message("Found pybind11_mkdoc.  Will use it to autogenerate Python docstrings.")
-        set(USE_PYBIND11_MKDOC ON)
-        add_definitions(-DUSE_MKDOC_DOCSTRINGS)
-        include_directories("${CMAKE_INSTALL_PREFIX}")
+        ####################################
+        # Check if pybind11_mkdoc is around
+        ####################################
+        execute_process(
+                COMMAND "${Python_EXECUTABLE}" -c "import pybind11_mkdoc"
+                RESULT_VARIABLE PYBIND11_MKDOC_EXIT_CODE
+        )
+        if (${PYBIND11_MKDOC_EXIT_CODE} EQUAL 0)
+            message("Found pybind11_mkdoc.  Will use it to autogenerate Python docstrings.")
+            set(USE_PYBIND11_MKDOC ON)
+            add_definitions(-DUSE_MKDOC_DOCSTRINGS)
+            include_directories("${CMAKE_INSTALL_PREFIX}")
+        endif()
     endif()
 
 endif()
