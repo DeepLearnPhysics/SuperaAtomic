@@ -34,4 +34,3 @@ def get_lib_dir():
     print('supera include path could not be located...')
     raise FileNotFoundError 
 
-

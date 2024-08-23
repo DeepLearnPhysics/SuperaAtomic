@@ -42,9 +42,9 @@ namespace supera {
       , px               (0.)
       , py               (0.)
       , pz               (0.)
-      , end_px         (kINVALID_DOUBLE)
-      , end_py         (kINVALID_DOUBLE)
-      , end_pz         (kINVALID_DOUBLE)
+      , end_px           (kINVALID_DOUBLE)
+      , end_py           (kINVALID_DOUBLE)
+      , end_pz           (kINVALID_DOUBLE)
       , dist_travel      (-1)
       , energy_init      (0.)
       , energy_deposit   (0.)
@@ -81,10 +81,10 @@ namespace supera {
     ProcessType_t  type;        ///< Creation process type
     SemanticType_t shape;       ///< Semantic type info
     TrackID_t      trackid;     ///< Geant4 track id
-    TrackID_t      genid;       ///< Original generator ID, if different than Geant4 (e.g.: GENIE particle ID)
+    TrackID_t      genid;
     PdgCode_t      pdg;         ///< PDG code
     double         px,py,pz;    ///< (x,y,z) component of particle's initial momentum
-    double         end_px, end_py, end_pz;          ///< (x,y,z) component of particle's final momentum
+    double         end_px, end_py, end_pz; ///< (x,y,z) component of particle's final momentum
     Vertex         vtx;         ///< (x,y,z,t) of particle's vertex information
     Vertex         end_pt;      ///< (x,y,z,t) at which particle disappeared from G4WorldVolume
     Vertex         first_step;  ///< (x,y,z,t) of the first energy deposition point in the detector
@@ -142,69 +142,55 @@ namespace supera {
   }
   */
 
-  /**
-     \class ParticleInput
-     \brief True particle information from upstream: particle quantities (kinematics, etc.) & associated energy deposits
-  */
   class ParticleInput {
   public:
 
     ParticleInput() : valid(true) {}
 
     std::string dump2cpp(const std::string & instanceName = "partInput") const;
-
+    supera::InstanceID_t id;  ///< a unique integer ID for an input instance
+    supera::InstanceID_t parent_id; ///< a unique integer ID for the parent of an input instance
+    supera::InstanceID_t ancestor_id; ///< a unique integer ID for the ancestor of an input instance
+    supera::InstanceID_t interaction_id; ///< a unique interger ID for the group of particles with the common origin
     supera::Particle part;    ///< a particle information
     std::vector<EDep> pcloud; ///< 3D energy deposition information per particle
     bool valid;
   };
+  
+  class ParticleLabel {
+  public:
+    ParticleLabel();
+    ParticleLabel(const ParticleLabel& other) = default;
+    ParticleLabel(ParticleLabel&& other) = default;
 
+    ParticleLabel & operator=(const ParticleLabel& other) = default;
 
-  /**
-     \class ParticleLabel
-     \brief Output of the Supera algorithm for a true "top-level" particle (after regrouping)
-  */
-  class ParticleLabel
-  {
-    public:
-      ParticleLabel();
+    bool operator==(const ParticleLabel & rhs) const;
+    bool operator!=(const ParticleLabel & rhs) const { return !(*this == rhs); }
 
-      ParticleLabel(const ParticleLabel& other) = default;
+    void UpdateFirstPoint(const EDep& pt);
+    void UpdateLastPoint(const EDep& pt);
+    void SizeCheck() const;
+    size_t Size() const;
+    void Merge(ParticleLabel& child);
+    //supera::SemanticType_t shape() const;
 
-      ParticleLabel(ParticleLabel&& other) = default;
+    std::string dump() const;
+    std::string dump2cpp(const std::string & instanceName = "partLabel") const;
 
-      ParticleLabel& operator=(const ParticleLabel& other) = default;
-
-      bool operator==(const ParticleLabel& rhs) const;
-
-      bool operator!=(const ParticleLabel& rhs) const
-      { return !(*this == rhs); }
-
-      void UpdateFirstPoint(const EDep& pt);
-
-      void UpdateLastPoint(const EDep& pt);
-
-      void SizeCheck() const;
-
-      size_t Size() const;
-
-      void Merge(ParticleLabel& child, bool verbose = false);
-      //supera::SemanticType_t shape() const;
-
-      std::string dump() const;
-
-      std::string dump2cpp(const std::string& instanceName = "partLabel") const;
-
-      supera::Particle part;            ///< a particle information
-      bool valid;                       ///< a state flag whether this particle should be ignored or not
-      std::vector <TrackID_t> merged_v;  ///< track ID of descendent particles that are merged
-      std::vector <TrackID_t> parent_trackid_v; ///< track ID of parent particles in the history
-      TrackID_t merge_id;               ///< a track ID of the particle to which this one is merged
-      supera::VoxelSet energy;          ///< 3D voxels (energy deposition)
-      supera::VoxelSet dedx;            ///< 3D voxels (dE/dX)
-      EDep first_pt;                    ///< first energy deposition point (not voxel)
-      EDep last_pt;                     ///< last energy deposition point (not voxel)
+    supera::Particle part;            ///< a particle information
+    bool valid;                       ///< a state flag whether this particle should be ignored or not
+    InstanceID_t id;                  ///< instance ID of itself
+    InstanceID_t parent_id;           ///< instance ID of the parent
+    InstanceID_t ancestor_id;         ///< instance ID of the ancestor
+    std::vector<InstanceID_t> merged_v;    ///< instance ID of descendent particles that are merged
+    std::vector<InstanceID_t> parent_id_v; ///< instance ID of parent particles in the history
+    InstanceID_t merge_id;                 ///< a track ID of the particle to which this one is merged
+    supera::VoxelSet energy;          ///< 3D voxels (energy deposition)
+    supera::VoxelSet dedx;            ///< 3D voxels (dE/dX)
+    EDep first_pt;                    ///< first energy deposition point (not voxel)
+    EDep last_pt;                     ///< last energy deposition point (not voxel)
   };
-
 }
 #endif
 /** @} */ // end of doxygen group

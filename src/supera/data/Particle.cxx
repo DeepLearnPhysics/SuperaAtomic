@@ -13,23 +13,25 @@ namespace supera {
   {
     std::stringstream ss;
     std::stringstream buf;
-    ss  << "      \033[95m" << "Particle " << " (PdgCode,TrackID) = (" << pdg << "," << StringifyTrackID(trackid) << ")\033[00m " << std::endl
-        << "      ... with Parent (" << parent_pdg << "," << StringifyTrackID(parent_trackid) << ")" << std::endl
-        << "      ... + Ancestor  (" << ancestor_pdg << "," << StringifyTrackID(ancestor_trackid) << ")" << std::endl;
+    ss  << "      \033[95m" << "Particle " << " (PdgCode,TrackID) = (" << StringifyPdgCode(pdg) << "," << StringifyTrackID(trackid) << ")\033[00m " << std::endl
+        << "      ... with Parent (" << StringifyPdgCode(parent_pdg) << "," << StringifyTrackID(parent_trackid) << ")" << std::endl
+        << "      ... + Ancestor  (" << StringifyPdgCode(ancestor_pdg) << "," << StringifyTrackID(ancestor_trackid) << ")" << std::endl;
 
     buf << "      ";
 
-    ss << buf.str() << "Vertex   (x, y, z, t) = (" << vtx.pos.x << "," << vtx.pos.y << "," << vtx.pos.z << "," << vtx.time << ")" << std::endl
-       << buf.str() << "Momentum (px, py, pz) = (" << px << "," << py << "," << pz << ")" << std::endl
-       << buf.str() << "Momentum (end_px, end_py, end_pz) = (" << end_px << "," << end_py << "," << end_pz << ")" << std::endl
-       << buf.str() << "Initial  Energy  = " << energy_init << std::endl
-       << buf.str() << "Deposit  Energy  = " << energy_deposit << std::endl
-       << buf.str() << "Creation Process = " << process << std::endl
-       << buf.str() << "Instance ID      = " << StringifyInstanceID(id) << std::endl
-       << buf.str() << "Group ID         = " << StringifyInstanceID(group_id) << std::endl
-       << buf.str() << "Interaction ID   = " << StringifyInstanceID(interaction_id) << std::endl
-       << buf.str() << "Type     = " << type << std::endl
-       << buf.str() << "Shape    = " << shape << std::endl;
+    ss<< buf.str() << "Vertex   (x, y, z, t) = (" << StringifyPoint3D(vtx.pos) << " T=" << vtx.time << std::endl
+      << buf.str() << "Momentum (px, py, pz) = (" << StringifyDouble(px) << ","
+      << buf.str() << "Momentum (end_px, end_py, end_pz) = (" << end_px << "," << end_py << "," << end_pz << ")" << std::endl
+      << StringifyDouble(py) << "," 
+      << StringifyDouble(pz) << ")" << std::endl
+      << buf.str() << "Initial  Energy  = " << StringifyDouble(energy_init) << std::endl
+      << buf.str() << "Deposit  Energy  = " << StringifyDouble(energy_deposit) << std::endl
+      << buf.str() << "Creation Process = " << process << std::endl
+      << buf.str() << "Instance ID      = " << StringifyInstanceID(id) << std::endl
+      << buf.str() << "Group ID         = " << StringifyInstanceID(group_id) << std::endl
+      << buf.str() << "Interaction ID   = " << StringifyInstanceID(interaction_id) << std::endl
+      << buf.str() << "Type     = " << type << std::endl
+      << buf.str() << "Shape    = " << shape << std::endl;
     ss << buf.str() << "Children = ";
     for (const auto & child :  children_id)
       ss << " " << StringifyInstanceID(child);
@@ -49,48 +51,48 @@ namespace supera {
     ss << instanceName << ".id = " << id << ";\n";
     ss << instanceName << ".shape = static_cast<supera::SemanticType_t>(" << shape << ");\n";
     ss << instanceName << ".trackid = " << StringifyTrackID(trackid) << ";\n";
-    ss << instanceName << ".pdg = " << pdg << ";\n";
-    ss << instanceName << ".px = " << px << ";\n";
-    ss << instanceName << ".py = " << py << ";\n";
-    ss << instanceName << ".pz = " << pz << ";\n";
+    ss << instanceName << ".pdg = " << StringifyPdgCode(pdg) << ";\n";
+    ss << instanceName << ".px = " << StringifyDouble(px) << ";\n";
+    ss << instanceName << ".py = " << StringifyDouble(py) << ";\n";
+    ss << instanceName << ".pz = " << StringifyDouble(pz) << ";\n";
     ss << instanceName << ".end_px = " << end_px << ";\n";
     ss << instanceName << ".end_py = " << end_py << ";\n";
     ss << instanceName << ".end_pz = " << end_pz << ";\n";
-    ss << instanceName << ".vtx = {" << vtx.pos.x << ", "
-                                     << vtx.pos.y << ", "
-                                     << vtx.pos.z << ", "
-                                     << vtx.time << "};\n";
-    ss << instanceName << ".end_pt = {" << end_pt.pos.x << ", "
-                                        << end_pt.pos.y << ", "
-                                        << end_pt.pos.z << ", "
-                                        << end_pt.time << "};\n";
-    ss << instanceName << ".first_step = {" << first_step.pos.x << ", "
-                                            << first_step.pos.y << ", "
-                                            << first_step.pos.z << ", "
-                                            << first_step.time << "};\n";
-    ss << instanceName << ".last_step = {" << last_step.pos.x << ", "
-                                           << last_step.pos.y << ", "
-                                           << last_step.pos.z << ", "
-                                           << last_step.time << "};\n";
-    ss << instanceName << ".dist_travel = " << dist_travel << ";\n";
-    ss << instanceName << ".energy_init = " << energy_init << ";\n";
-    ss << instanceName << ".energy_deposit = " << energy_deposit << ";\n";
+    ss << instanceName << ".vtx = {" << StringifyDouble(vtx.pos.x) << ", "
+                                     << StringifyDouble(vtx.pos.y) << ", "
+                                     << StringifyDouble(vtx.pos.z) << ", "
+                                     << StringifyDouble(vtx.time ) << "};\n";
+    ss << instanceName << ".end_pt = {" << StringifyDouble(end_pt.pos.x) << ", "
+                                        << StringifyDouble(end_pt.pos.y) << ", "
+                                        << StringifyDouble(end_pt.pos.z) << ", "
+                                        << StringifyDouble(end_pt.time ) << "};\n";
+    ss << instanceName << ".first_step = {" << StringifyDouble(first_step.pos.x) << ", "
+                                            << StringifyDouble(first_step.pos.y) << ", "
+                                            << StringifyDouble(first_step.pos.z) << ", "
+                                            << StringifyDouble(first_step.time ) << "};\n";
+    ss << instanceName << ".last_step = {" << StringifyDouble(last_step.pos.x) << ", "
+                                           << StringifyDouble(last_step.pos.y) << ", "
+                                           << StringifyDouble(last_step.pos.z) << ", "
+                                           << StringifyDouble(last_step.time ) << "};\n";
+    ss << instanceName << ".dist_travel = " << StringifyDouble(dist_travel) << ";\n";
+    ss << instanceName << ".energy_init = " << StringifyDouble(energy_init) << ";\n";
+    ss << instanceName << ".energy_deposit = " << StringifyDouble(energy_deposit) << ";\n";
     ss << instanceName << ".process = \"" << process << "\";\n";
 
     ss << instanceName << ".parent_trackid = " << StringifyTrackID(parent_trackid) << ";\n";
-    ss << instanceName << ".parent_pdg = " << parent_pdg << ";\n";
-    ss << instanceName << ".parent_vtx = {" << parent_vtx.pos.x << ", "
-                                            << parent_vtx.pos.y << ", "
-                                            << parent_vtx.pos.z << ", "
-                                            << parent_vtx.time << "};\n";
+    ss << instanceName << ".parent_pdg = " << StringifyPdgCode(parent_pdg) << ";\n";
+    ss << instanceName << ".parent_vtx = {" << StringifyDouble(parent_vtx.pos.x) << ", "
+                                            << StringifyDouble(parent_vtx.pos.y) << ", "
+                                            << StringifyDouble(parent_vtx.pos.z) << ", "
+                                            << StringifyDouble(parent_vtx.time ) << "};\n";
 
     // this particle is at the top so it's its own ancestor
     ss << instanceName << ".ancestor_trackid = " << StringifyTrackID(ancestor_trackid) << ";\n";
-    ss << instanceName << ".ancestor_pdg = " << ancestor_pdg << ";\n";
-    ss << instanceName << ".ancestor_vtx = {" << ancestor_vtx.pos.x << ", "
-                                              << ancestor_vtx.pos.y << ", "
-                                              << ancestor_vtx.pos.z << ", "
-                                              << ancestor_vtx.time << "};\n";
+    ss << instanceName << ".ancestor_pdg = " << StringifyPdgCode(ancestor_pdg) << ";\n";
+    ss << instanceName << ".ancestor_vtx = {" << StringifyDouble(ancestor_vtx.pos.x) << ", "
+                                              << StringifyDouble(ancestor_vtx.pos.y) << ", "
+                                              << StringifyDouble(ancestor_vtx.pos.z) << ", "
+                                              << StringifyDouble(ancestor_vtx.time ) << "};\n";
     ss << instanceName << ".ancestor_process = \"" << ancestor_process << "\";\n";
 
     ss << instanceName << ".parent_process = \"" << parent_process << "\";\n";
@@ -169,6 +171,7 @@ namespace supera {
     return ss.str();
   }
 
+
   // --------------------------------------------------------
 
   ParticleLabel::ParticleLabel()
@@ -225,7 +228,7 @@ namespace supera {
     return energy.size();
   }
 
-  void ParticleLabel::Merge(ParticleLabel& child,bool verbose) {
+  void ParticleLabel::Merge(ParticleLabel& child) {
     //std::cout<<"Merging child track " << child.part.trackid << " into parent track " << part.trackid << std::endl;
     if(!(this->valid)) {
       std::cerr<<"Cannot merge into an invalid parent!" << std::endl;
@@ -239,61 +242,22 @@ namespace supera {
     for(auto const& vox : child.dedx.as_vector())
       this->dedx.emplace(vox.id(),vox.value(),true);
     
-    if(verbose) {
-      std::cout<<"Parent track id " << this->part.trackid
-      << " PDG " << this->part.pdg << " proc " << this->part.process << " shape " << this->part.shape << std::endl
-      << "  ... merging " << child.part.trackid
-      << " PDG " << child.part.pdg << " proc " << child.part.process << " shape " << child.part.shape << std::endl;
-    }
 
-    if(child.part.shape == kShapeTrack || child.part.shape == kShapeShower)
+    if(child.part.shape == kShapeTrack || child.part.shape == kShapeShower || first_pt.x == kINVALID_DOUBLE)
       this->UpdateFirstPoint(child.first_pt);
-    if(child.part.shape == kShapeTrack) {
+    if(child.part.shape == kShapeTrack || first_pt.x == kINVALID_DOUBLE) {
       //std::cout<<child.dump2cpp()<<std::endl;
       this->UpdateLastPoint(child.last_pt);
     }
-    this->merged_v.push_back(child.part.trackid);
-    for(auto const& trackid : child.merged_v)
-      this->merged_v.push_back(trackid);
-    /*
-    for(size_t plane_id=0; plane_id < vs2d_v.size(); ++plane_id) {
-      auto& vs2d = vs2d_v[plane_id];
-      auto& child_vs2d = child.vs2d_v[plane_id];
-      for(auto const& vox : child_vs2d.as_vector())
-        vs2d.emplace(vox.id(),vox.value(),true);
-      child_vs2d.clear_data();
-    }
-    */
+    this->merged_v.push_back(child.id);
+    for(auto const& id : child.merged_v)
+      this->merged_v.push_back(id);
+
     child.energy.clear_data();
     child.dedx.clear_data();
     child.valid=false;
-    child.merge_id=this->part.trackid;
+    child.merge_id=this->id;
   }
-
-  // semantic classification (supera::SemanticType_t)
-  
-  /*
-  supera::SemanticType_t ParticleLabel::shape() const
-  {
-
-    if(type == kInvalidProcess) return supera::kShapeUnknown;
-    if(type == kDelta) return supera::kShapeDelta;
-    if(type == kNeutron) //return supera::kShapeUnknown;
-
-    if(part.pdg == 11 || part.pdg == 22 || part.pdg == -11) {
-      if(type == kCompton || type == kPhoton || type == kPrimary || type == kConversion || type==kOtherShower)
-        return supera::kShapeShower;
-      if(type == kDecay) {
-        if(part.parent_pdg == 13 || part.parent_pdg == -13)
-          return supera::kShapeMichel;
-        else
-          return supera::kShapeShower;
-      }
-      return supera::kShapeLEScatter;
-    }else
-    return supera::kShapeTrack;
-  }
-*/
 
   std::string ParticleLabel::dump2cpp(const std::string &instanceName) const
   {
@@ -347,12 +311,14 @@ namespace supera {
     std::stringstream st;
 
     st << "ParticleLabel object:\n";
-    st << "  valid = " << valid << "; \n";
+    st << "  valid = " << valid << "\n";
     st << "  num voxels: " << energy.size() << "\n";
-    st << "  merged into track ID: " << merge_id << "\n";
-    st << "  merged track IDs: ";
-    for (const TrackID_t tk : merged_v)
-      st << tk << " ";
+    st << "  first step: " << StringifyEDep(first_pt) << "\n";
+    st << "  last  step: " << StringifyEDep(last_pt) << "\n";
+    st << "  merged into instance ID: " << merge_id << "\n";
+    st << "  merged instance IDs: ";
+    for (auto const& id : merged_v)
+      st << id << " ";
     st << "\n";
     st << "  Particle:\n";
     st << part.dump() << "\n";
