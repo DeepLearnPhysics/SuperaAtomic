@@ -28,7 +28,9 @@ namespace supera
         Configurable() {};
 
         virtual void ConfigureFromText(const std::string& yaml_text)
-        { auto cfg = YAML::Load(yaml_text);     this->Configure(cfg); }
+        { 
+          std::cout<<"Configure from text"<<std::endl;
+          auto cfg = YAML::Load(yaml_text);     this->Configure(cfg); }
 
         virtual void ConfigureFromFile(const std::string& yaml_file)
         { auto cfg = YAML::LoadFile(yaml_file); this->Configure(cfg); }

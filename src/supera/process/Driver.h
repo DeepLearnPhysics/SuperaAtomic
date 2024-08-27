@@ -26,7 +26,7 @@ namespace supera {
 		Driver(const std::string& name="Driver")
 		: Loggable(name)
 		, _algo_bbox(nullptr), _algo_label(nullptr) 
-		{}
+		{std::cout<<"Instantiating supera::Driver"<<std::endl;}
 
 		virtual void Configure(const YAML::Node& cfg) override;
 

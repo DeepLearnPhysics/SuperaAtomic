@@ -9,10 +9,6 @@
  */
 
 /** \addtogroup base
-<<<<<<< HEAD
-
-=======
->>>>>>> kazu/master
     @{*/
 #ifndef __SUPERA_NEUTRINO_H__
 #define __SUPERA_NEUTRINO_H__

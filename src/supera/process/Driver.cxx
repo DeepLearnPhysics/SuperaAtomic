@@ -28,6 +28,7 @@ namespace supera {
 
     void Driver::Configure(const YAML::Node& cfg) 
     {
+        std::cout<<"Configure from base supera"<<std::endl;
         LOG_WARNING() << "starting"<<std::endl;
         if(cfg["LogLevel"]) {
             auto log_level = cfg["LogLevel"].as<std::string>();
