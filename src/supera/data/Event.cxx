@@ -7,91 +7,23 @@
 #include "supera/base/meatloaf.h"
 
 namespace supera {
-
-  // --------------------------------------------------------
-  /*
-  const supera::VoxelSet &EventOutput::VoxelDeDxs() const
+  const ParticleLabel& EventOutput::Particle(InstanceID_t id) const
   {
-    // recompute only if particle list has changed under us
-    if (IsDirty(DIRTY_FLAG::kDeDx))
-    {
-      // we want an energy-weighted mean here.
-      // first add all the dEdXs up, weighted by their energies...
-      supera::VoxelSet dEdXs;
-      for (const supera::ParticleLabel & part : Particles())
-      {
-        for (const supera::Voxel & dedx : part.dedx.as_vector())
-          dEdXs.emplace(dedx.id(), dedx.value() * VoxelEnergies().find(dedx.id()).value(), true);
-      }
+    // check if it's already ordered. Then we're done
+    if (_particles.size() > id && _particles[id].part.id == id)
+      return _particles[id];
 
-      // now renormalize them...
-      for (const supera::Voxel & dedx : dEdXs.as_vector())
-      {
-        auto energy = VoxelEnergies().find(dedx.id()).value();
-        if (energy > 0)
-          dEdXs.emplace(dedx.id(), dedx.value() / energy, false);
-      }
-
-      _dEdXs = std::move(dEdXs);
-    } // if (IsDirty(...))
-
-    return _dEdXs;
-  }
-  
-  // --------------------------------------------------------
-
-  const supera::VoxelSet &EventOutput::VoxelEnergies() const
-  {
-    // recompute only if particle list has changed under us
-    if (IsDirty(DIRTY_FLAG::kEnergy))
-    {
-      supera::VoxelSet energies;
-      for (const supera::ParticleLabel & part : Particles())
-        energies.emplace(part.energy, true);
-      _energies = std::move(energies);
+    for(auto const& p : _particles) {
+      if(p.part.id != id)
+        continue;
+      return p;
     }
-
-    return _energies;
+    std::cerr<<"No particle found with an id "<<id<<std::endl;
+    throw meatloaf();
   }
-
-  // --------------------------------------------------------
-  
-  const supera::VoxelSet &
-  EventOutput::VoxelLabels(const std::vector<supera::SemanticType_t> &semanticPriority) const
-  {
-    // recompute only if particle list has changed under us
-    if (IsDirty(DIRTY_FLAG::kLabel))
-    {
-      supera::VoxelSet semantics;
-      for (const supera::ParticleLabel & part : Particles())
-      {
-        auto const &vs = part.energy;
-        SemanticType_t semantic = part.part.shape;
-        for (auto const &vox : vs.as_vector())
-        {
-          auto const &prev = semantics.find(vox.id());
-          if (prev.id() == supera::kINVALID_VOXELID)
-            semantics.emplace(vox.id(), semantic, false);
-          else
-          {
-            // todo: what if the new voxel has 10x the energy??
-            SemanticType_t prioritized_semantic = EventOutput::_SemanticPriority(static_cast<SemanticType_t>(prev.value()), semantic, semanticPriority);
-            if (prioritized_semantic != static_cast<SemanticType_t>(prev.value()))
-              semantics.emplace(vox.id(), semantic, false);
-          }
-        } // for (vox)
-      } // for (part)
-
-      _semanticLabels = std::move(semantics);
-    } // if (IsDirty(...))
-
-    return _semanticLabels;
-  }
-*/
-  // --------------------------------------------------------
 
   supera::SemanticType_t EventOutput::_SemanticPriority(supera::SemanticType_t a, supera::SemanticType_t b,
-                                                        const std::vector<supera::SemanticType_t> & semanticPriority)
+    const std::vector<supera::SemanticType_t> & semanticPriority)
   {
     if (a == b)
       return a;
@@ -103,6 +35,53 @@ namespace supera {
         return b;
     }
     return a;
+  }
+
+  bool EventInput::IntegrityCheck() const
+  {
+    for(size_t i=0; i<this->size(); ++i) {
+      auto const& part = (*this)[i];
+      if(part.id != i) {
+        std::cerr<<"[EventInput::IntegrityCheck] ID="<<part.id<<" mismatch with the index="<<i<<std::endl;
+        return false;
+      }
+      if(part.id == kINVALID_INSTANCEID){
+        std::cerr<<"[EventInput::IntegrityCheck] ID="<<part.id<<" is INVALID value"<<std::endl;
+        return false;
+      }
+      if(part.interaction_id == kINVALID_INSTANCEID){
+        std::cerr<<"[EventInput::IntegrityCheck] Interaction ID="<<part.interaction_id<<" is INVALID value"<<std::endl;
+        return false;
+      }
+
+      if(part.id != part.parent_id) {
+        bool parent_found=false;
+        for(auto const& parent : (*this)) {
+          if(parent.id != part.parent_id)
+            continue;
+          parent_found=true;
+          break;
+        }
+        if(!parent_found) {
+          std::cerr<<"[EventInput::IntegrityCheck] Parent ID"<<part.parent_id<<" not found in the collection!"<<std::endl;
+          return false;
+        }
+      }
+      if(part.id != part.ancestor_id) {
+        bool ancestor_found=false;
+        for(auto const& ancestor : (*this)) {
+          if(ancestor.id != part.ancestor_id)
+            continue;
+          ancestor_found=true;
+          break;
+        }
+        if(!ancestor_found) {
+          std::cerr<<"[EventInput::IntegrityCheck] Ancestor ID"<<part.ancestor_id<<" not found in the collection!"<<std::endl;
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   // --------------------------------------------------------
@@ -262,5 +241,4 @@ namespace supera {
       values.push_back(vox.value());
     }
   }
-
 } // namespace supera
