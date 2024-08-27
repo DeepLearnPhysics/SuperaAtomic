@@ -5,6 +5,10 @@
 #include "BBox.h"
 #include "Voxel.h"
 
+#include "ImageMeta3D.h"
+#include "Particle.h"
+
+
 #include "pybind11/operators.h"
 #include "supera/pybind_mkdoc.h"
 

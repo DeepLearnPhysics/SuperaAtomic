@@ -1,47 +1,45 @@
-cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 
 # general configuration for compilation:
-set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -O2 -g")
-set(CMAKE_LIBRARY_ARCHITECTURE x86_64)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -O3 -g")
+
 
 project(supera)
 
 set(CMAKE_PACKAGE_DIR "./")
 set(PROJECT_SOURCE_DIR "./")
-
 set(PYBIND11_MKDOC_DOCSTRING_FILE docstrings.h)
 
 include_directories("./")
 
-message("    Configuring Supera build")
+message("    Configuring supera build")
 
-if(WITH_PYTHON)
-    add_definitions(-DBUILD_PYTHON_BINDINGS)
-    #########
-    # Python
-    #########
-    find_package(Python COMPONENTS Interpreter Development)
+
+#########
+# Python
+#########
+if(WITH_PYBIND OR WITH_PYROOT)
+
+    find_package(PythonLibs REQUIRED)
     message("    Adding Python")
-    message("    INCLUDE:  ${Python_INCLUDE_DIRS}")
-    include_directories(${Python_INCLUDE_DIRS})
+    message("    INCLUDE: " , ${PYTHON_INCLUDE_DIRS})
+    include_directories(${PYTHON_INCLUDE_DIRS})
 
-    if(NOT Python_EXECUTABLE)
-    message( FATAL_ERROR "Python_EXECUTABLE not found. Cannot build Supera...")
+    if(NOT PYTHON_EXECUTABLE)
+        message( FATAL_ERROR "PYTHON_EXECUTABLE not found. Cannot build edep2supera...")
     endif()
 
     ########
     # Numpy
     ########
     execute_process(
-        COMMAND "${Python_EXECUTABLE}" -c
+        COMMAND "${PYTHON_EXECUTABLE}" -c
         "from __future__ import print_function\ntry: import numpy; print(numpy.get_include(), end='')\nexcept:pass\n"
         OUTPUT_VARIABLE __numpy_path)
 
     execute_process(
-        COMMAND "${Python_EXECUTABLE}" -c
+        COMMAND "${PYTHON_EXECUTABLE}" -c
         "from __future__ import print_function\ntry: import numpy; print(numpy.__version__, end='')\nexcept:pass\n"
         OUTPUT_VARIABLE __numpy_version)
 
@@ -51,12 +49,27 @@ if(WITH_PYTHON)
     if(PYTHON_NUMPY_INCLUDE_DIR)
         set(PYTHON_NUMPY_FOUND 1 CACHE INTERNAL "Python numpy found")
     else()
-        message( FATAL_ERROR "Numpy could not be located. Cannot build Supera...")
+        message( FATAL_ERROR "Numpy could not be located. Cannot build edep2supera...")
     endif()
 
     message("    Adding Numpy")
     message("    INCLUDE: " ${PYTHON_NUMPY_INCLUDE_DIR})
     include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
+
+    if(WITH_PYROOT)
+
+        ################
+        # Add PyROOT
+        ################
+        find_package(ROOT REQUIRED
+          COMPONENTS Geom Physics Matrix MathCore Tree RIO)
+        if(ROOT_FOUND)
+          include(${ROOT_USE_FILE})
+        else()
+          message( FATAL_ERROR "ROOT is needed but not found. Cannot build edep2supera...")
+        endif(ROOT_FOUND)
+
+    endif()
 
     if(WITH_PYBIND)
         ####################################
@@ -80,56 +93,12 @@ if(WITH_PYTHON)
             add_definitions(-DUSE_MKDOC_DOCSTRINGS)
             include_directories("${CMAKE_INSTALL_PREFIX}")
         endif()
+
     endif()
 
 endif()
 
-#get_cmake_property(_variableNames VARIABLES)
-#list (SORT _variableNames)
-#foreach (_variableName ${_variableNames})
-#    message(STATUS "${_variableName}=${${_variableName}}")
-#endforeach()
-
-####################################
-# Add HDF5
-####################################
-find_package(HDF5 REQUIRED)
-message("    Adding HDF5")
-message("    INCLUDE: " ${HDF5_INCLUDE_DIR})
-include_directories(${HDF5_INCLUDE_DIR})
-
-include(CMakePackageConfigHelpers)
-####################################
-# Add yaml
-####################################
-#set(CMAKE_FIND_DEBUG_MODE TRUE)
-find_package( yaml-cpp CONFIG REQUIRED PATHS /usr/lib/x86_64-linux-gnu/cmake/yaml-cpp )
-#set(CMAKE_FIND_DEBUG_MODE FALSE)
-message("    Adding Yaml")
-message("    INCLUDE: " ${YAML_CPP_INCLUDE_DIR})
-include_directories(${YAML_CPP_INCLUDE_DIR})
-
-####################################
-# Add larcv
-####################################
-#execute_process(COMMAND 
-#    "${Python_EXECUTABLE}" -c "import larcv;print(larcv.get_lib_dir(),end='');"
-#    OUTPUT_VARIABLE
-#    LARCV_LIB_DIR)
-#execute_process(COMMAND 
-#    "${Python_EXECUTABLE}" -c "import larcv;print(larcv.get_includes(),end='');"
-#    OUTPUT_VARIABLE
-#    LARCV_INCLUDE_DIR)
 #
-#message("    Adding larcv")
-#message("    INCLUDE: " ${LARCV_INCLUDE_DIR})
-#message("    LIB:     " ${LARCV_LIB_DIR}    )
-#include_directories(${LARCV_INCLUDE_DIR})
-
+# Go build supera
+#
 add_subdirectory(supera)
-
-# if the build isn't being driven by scikit-build, we won't get the python __init__.py installed correctly
-if(NOT SKBUILD)
-    message("Not using scikit-build.  Installing supera's __init__.py by hand!...")
-    install(FILES ../python/supera/__init__.py DESTINATION ${CMAKE_INSTALL_PREFIX})
-endif()

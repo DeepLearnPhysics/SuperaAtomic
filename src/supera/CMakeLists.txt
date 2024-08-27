@@ -4,6 +4,9 @@
 
 set(ALL_HEADERS "")
 
+#
+# Pybind documentation
+#
 # this needs to be done before the add_subdirectory() calls
 # for the include_directories() addition to be inherited, it seems
 if(USE_PYBIND11_MKDOC)
@@ -12,30 +15,47 @@ if(USE_PYBIND11_MKDOC)
     include_directories(${PROJECT_BINARY_DIR}/${curdir})
 endif()
 
+#
+# Build sub directories
+#
 add_subdirectory(base)
 add_subdirectory(data)
-add_subdirectory(algorithm)
 add_subdirectory(process)
-#add_subdirectory(test)
+add_subdirectory(algorithm)
 
+#
+# Build shared library file
+#
 add_library(supera SHARED
     $<TARGET_OBJECTS:base>
     $<TARGET_OBJECTS:data>
-    $<TARGET_OBJECTS:algorithm>
     $<TARGET_OBJECTS:process>
-#    $<TARGET_OBJECTS:test>
+    $<TARGET_OBJECTS:algorithm>
+
 )
 
-target_link_libraries(supera 
-    ${PYTHON_LIBRARIES}
-    yaml-cpp
-    #-L${LARCV_LIB_DIR} -llarcv3
-  )
+#
+# Link libraries
+#
+if(WITH_PYROOT)
+    target_link_libraries(supera
+        ${PYTHON_LIBRARIES}
+        ${ROOT_LIBRARIES}
+        yaml-cpp
+    )
+else()
+    target_link_libraries(supera
+        ${PYTHON_LIBRARIES}
+        ${ROOT_LIBRARIES}
+        yaml-cpp
+    )
+endif()
 
+
+####################################
+# Pybind-specific library generation
+####################################
 if(WITH_PYBIND)
-    ###############################
-    # Python binding (via pybind11)
-    ###############################
 
     pybind11_add_module(pysupera MODULE supera_pybind.cxx)
 
@@ -87,21 +107,19 @@ if(WITH_PYBIND)
 endif()
 
 
+
+
+
 ###########
 # Install
 ###########
-install(TARGETS supera
 
-    #LIBRARY
-    LIBRARY DESTINATION ${CMAKE_PACKAGE_DIR}/lib
-    ARCHIVE DESTINATION ${CMAKE_PACKAGE_DIR}/lib
+# Install
+install(TARGETS supera
+    LIBRARY DESTINATION ${CMAKE_PACKAGE_DIR}/lib/supera
+    ARCHIVE DESTINATION ${CMAKE_PACKAGE_DIR}/lib/supera
     RUNTIME DESTINATION ${CMAKE_PACKAGE_DIR}/bin
-    #INCLUDES DESTINATION supera/include
-    #LIBRARY DESTINATION lib
-    #ARCHIVE DESTINATION archive
-    #RUNTIME DESTINATION bin
-    #INCLUDES DESTINATION include
-  )
+    )
 
 if(WITH_PYBIND)
     install(TARGETS pysupera

@@ -8,34 +8,37 @@ with io.open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 # default no pybind
-with_python='ON'
+with_pyroot='ON'
 with_pybind='OFF'
 
-if 'SUPERA_WITHOUT_PYTHON' in os.environ and eval(os.environ['SUPERA_WITHOUT_PYTHON']):
-    with_python=with_pybind='OFF'
-if 'SUPERA_WITH_PYTHON' in os.environ:
-    if eval(os.environ['SUPERA_WITH_PYTHON']):
-        with_python='ON'
+if 'SUPERA_WITH_PYROOT' in os.environ:
+    if eval(os.environ['SUPERA_WITH_PYROOT']):
+        with_pyroot='ON'
     else:
-        with_python='OFF'
+        with_pyroot='OFF'
 
-if 'SUPERA_WITH_PYBIND' in os.environ and eval(os.environ['SUPERA_WITH_PYBIND']):
-    with_pybind='ON'
-    if with_python == 'OFF':
-        print('WARNING: SUPERA_WITH_PYBIND is positive and PYTHON is enabled althought it was set OFF')
-        with_python = 'ON'
-    
+if 'SUPERA_WITH_PYBIND' in os.environ:
+    if eval(os.environ['SUPERA_WITH_PYBIND']):
+        with_pybind='ON'
+    else:
+        with_pybind='OFF'
 
+if with_pybind=='ON' and with_pyroot=='ON':
+    print('ERROR: cannot enable both PyROOT and Pybind.')
+    print('       Set the shell environment variables explicitly to contro.')
+    print('       $SUPERA_WITH_PYROOT=ON or OFF')
+    print('       $SUPERA_WITH_PYBIND=ON or OFF')
+    raise OSError
 
 setup(
     name="supera",
-    version="3.3.4",
+    version="4.0.0",
     cmake_source_dir='src/',
     include_package_data=True,
     cmake_args=[
         #'-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON',
-        '-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9',
-        '-DWITH_PYTHON={}'.format(with_python),
+        #'-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9',
+        '-DWITH_PYROOT={}'.format(with_pyroot),
         '-DWITH_PYBIND={}'.format(with_pybind),
     ],
     author=['Corey Adams', 'Kazuhiro Terao', 'Taritree Wongjirad', 'Marco Del Tutto', 'Jeremy Wolcott'],
