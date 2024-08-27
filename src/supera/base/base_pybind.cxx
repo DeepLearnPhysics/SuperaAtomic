@@ -1,9 +1,13 @@
-#ifdef BUILD_PYTHON_BINDINGS
+#ifdef WITH_PYBIND
 #include "base_pybind.h"
 #include "SuperaType.h"
 #include "Point.h"
 #include "BBox.h"
 #include "Voxel.h"
+
+#include "ImageMeta3D.h"
+#include "Particle.h"
+
 
 #include "pybind11/operators.h"
 #include "supera/pybind_mkdoc.h"

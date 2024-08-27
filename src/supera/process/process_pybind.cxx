@@ -1,4 +1,4 @@
-#ifdef BUILD_PYTHON_BINDINGS
+#ifdef WITH_PYBIND
 #include "process_pybind.h"
 
 // needed so the std::map<> in the Driver::ConfigureBBoxAlgorithm() (etc.) signature gets handled right
