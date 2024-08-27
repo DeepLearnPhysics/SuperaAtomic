@@ -32,7 +32,7 @@ if with_pybind=='ON' and with_pyroot=='ON':
 
 setup(
     name="supera",
-    version="4.0.0",
+    version="1.7.0",
     cmake_source_dir='src/',
     include_package_data=True,
     cmake_args=[
