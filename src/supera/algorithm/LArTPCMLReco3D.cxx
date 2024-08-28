@@ -814,7 +814,10 @@ LArTPCMLReco3D::InitializeLabels(const EventInput &evtInput,
         }
     }
     if(invalid_unass_ctr){
-        LOG_WARNING() << invalid_unass_ctr << "/" << evtInput.unassociated_edeps.size()
+        size_t total_unass_count=0;
+        for(auto const& vs : evtInput.unassociated_edeps)
+            total_unass_count += vs.size();
+        LOG_WARNING() << invalid_unass_ctr << "/" << total_unass_count
         << " unassociated packets are ignored (outside BBox)" << std::endl;
     }
 

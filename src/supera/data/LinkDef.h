@@ -10,6 +10,4 @@
 #pragma link C++ class std::vector<supera::ParticleLabel>+;
 #pragma link C++ class supera::EventInput+;
 #pragma link C++ class supera::EventOutput+;
-#pragma link C++ class supera::Neutrino+;
-#pragma link C++ class std::vector<supera::Neutrino>+;
 #endif
