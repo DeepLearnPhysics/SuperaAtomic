@@ -24,7 +24,7 @@ namespace supera {
 
 		Driver(const std::string& name="Driver")
 		: Loggable(name)
-		, _algo_bbox(nullptr), _algo_label(nullptr) 
+		, _algo_bbox(nullptr), _algo_label(nullptr), _assert_inout_voxel_count(false)
 		{std::cout<<"Instantiating supera::Driver"<<std::endl;}
 
 		virtual void Configure(const YAML::Node& cfg) override;
@@ -78,6 +78,7 @@ namespace supera {
 		LabelAlgorithm* _algo_label;
 		ImageMeta3D _meta;
 		EventOutput _label;
+		bool _assert_inout_voxel_count;
 	};
 }
 
