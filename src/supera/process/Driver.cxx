@@ -28,18 +28,18 @@ namespace supera {
 
     void Driver::Configure(const YAML::Node& cfg) 
     {
-        LOG_INFO() << "starting"<<std::endl;
-        if(cfg["DriverConfig"]) {
-            auto driver_cfg = cfg["DriverConfig"];
+        LOG_INFO() << "starting" << std::endl;
+        if(cfg["SuperaDriver"]) {
+            auto driver_cfg = cfg["SuperaDriver"];
             if(!driver_cfg.IsMap()) {
-                throw meatloaf("DriverConfig must be a dictionary type");
+                throw meatloaf("SuperaDriver must be a dictionary type");
             }
             if(driver_cfg["LogLevel"]) {
-                auto log_level = cfg["LogLevel"].as<std::string>();
+                auto log_level = driver_cfg["LogLevel"].as<std::string>();
                 this->SetLogConfig(supera::msg::parseStringThresh(log_level));
                 LOG_INFO() << "Set the logger level to " << log_level << std::endl;
             }
-            _assert_inout_voxel_count = cfg["AssertInOutVoxelCount"].as<bool>();
+            _assert_inout_voxel_count = driver_cfg["AssertInOutVoxelCount"].as<bool>();
         }
 
         LOG_WARNING()<<"BBox config..."<<std::endl;

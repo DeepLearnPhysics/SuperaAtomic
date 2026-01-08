@@ -22,7 +22,7 @@ namespace supera {
 	class Driver : public Loggable, public Configurable {
 	public:
 
-		Driver(const std::string& name="Driver")
+		Driver(const std::string& name="SuperaDriver")
 		: Loggable(name)
 		, _algo_bbox(nullptr), _algo_label(nullptr), _assert_inout_voxel_count(false)
 		{std::cout<<"Instantiating supera::Driver"<<std::endl;}
