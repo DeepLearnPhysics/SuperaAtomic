@@ -1129,8 +1129,8 @@ void LArTPCMLReco3D::MergeShowerTouching(const supera::ImageMeta3D& meta,
                 if (same_family && this->IsTouching(meta, label_a.energy, label_b.energy))
                 {
 
-                    if (label_a.energy.size() > label_b.energy.size())
-//		    if (label_a.part.vtx.time < label_b.part.vtx.time)
+//                    if (label_a.energy.size() > label_b.energy.size())
+		    if (label_a.part.vtx.time < label_b.part.vtx.time)
                         this->MergeParticleLabel(labels, label_a.id, label_b.id);
                     else
                         this->MergeParticleLabel(labels, label_b.id, label_a.id);
