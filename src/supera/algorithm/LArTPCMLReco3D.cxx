@@ -1201,8 +1201,7 @@ void LArTPCMLReco3D::MergeTouchingLEScatter(const supera::ImageMeta3D& meta,
     std::vector<supera::ParticleLabel>& labels) const
 {
     LOG_INFO() << "starting" << std::endl;
-    std::vector<supera::SemanticType_t> priorities = {supera::kShapeShower, supera::kShapeMichel, supera::kShapeDelta,
-        supera::kShapeTrack, supera::kShapeGhost};
+    std::vector<supera::SemanticType_t> priorities = this->LEScatterMergePriority();
 
         size_t merge_ctr = 1;
         while (merge_ctr)
@@ -1336,6 +1335,33 @@ void LArTPCMLReco3D::MergeTouchingLEScatter(const supera::ImageMeta3D& meta,
         LOG_DEBUG() << "done" << std::endl;
         return result;
     } // LArTPCMLReco3D::ParentShowerIDs()
+
+
+    std::vector<supera::SemanticType_t>
+    LArTPCMLReco3D::LEScatterMergePriority() const
+    {
+        std::vector<supera::SemanticType_t> result;
+
+        // Shower-like types whose relative order must be preserved
+        const std::vector<supera::SemanticType_t> shower_types = {
+            supera::kShapeShower,
+            supera::kShapeMichel,
+            supera::kShapeDelta
+        };
+
+        // 1. Collect shower types in input order
+        for (auto s : _semantic_priority) {
+            if (std::find(shower_types.begin(), shower_types.end(), s) != shower_types.end()) {
+                result.push_back(static_cast<SemanticType_t>(s));
+            }
+        }
+
+        // 2. Append required trailing types (always)
+        result.push_back(supera::kShapeTrack);
+        result.push_back(supera::kShapeGhost);
+
+       return result;
+    } // LArTPCMLReco3D::ReorderPriorities()
 
     // ------------------------------------------------------
 

@@ -102,6 +102,9 @@ namespace supera {
         /// Most recent ancestor at index 0.
         //std::vector<supera::TrackID_t> ParentTrackIDs(size_t trackid) const;
 
+        /// Create a LE scatter merge semantic priority order based on the one passed to the class
+                std::vector<supera::SemanticType_t> LEScatterMergePriority() const;
+
 
 		std::vector<size_t> _semantic_priority;
 		size_t _touch_threshold;
