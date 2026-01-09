@@ -141,7 +141,6 @@ namespace supera {
         this->MergeTouchingLEScatter(meta,labels);
         this->MergeShowerFamilyTouching(meta, labels); // merge supera::kShapeShower to touching parent shower/delta/michel
         this->MergeShowerTouching(meta, labels); // merge supera::kShapeShower to touching shower in the same family tree
-
         //this->MergeTouchingLEScatter(meta,labels);
 
         // Re-classify small photons into ShapeLEScatter
@@ -1087,7 +1086,9 @@ void LArTPCMLReco3D::MergeShowerTouching(const supera::ImageMeta3D& meta,
         for (size_t i = 0; i < labels.size(); ++i)
         {
             auto &label_a = labels[i];
+
             if (!label_a.valid) continue;
+	    if (!label_a.energy.size()) continue;
             if (label_a.part.shape != supera::kShapeShower) continue;
 
             for (size_t j = i+1; j < labels.size(); ++j)
@@ -1095,6 +1096,7 @@ void LArTPCMLReco3D::MergeShowerTouching(const supera::ImageMeta3D& meta,
                 if (i == j) continue;
                 auto &label_b = labels[j];
                 if (!label_b.valid) continue;
+		if (!label_b.energy.size()) continue;
                 if (label_b.part.shape != supera::kShapeShower) continue;
 
                     // check if these showers share the parentage
@@ -1104,11 +1106,11 @@ void LArTPCMLReco3D::MergeShowerTouching(const supera::ImageMeta3D& meta,
 
                 auto parents_a = this->ParentShowerIDs(label_a.id, labels);
                 for (auto const &parent_id : parents_a) parent_list_a.insert(parent_id);
-                    parent_list_a.insert(label_a.id);
+                parent_list_a.insert(label_a.id);
 
                 auto parents_b = this->ParentShowerIDs(label_b.id, labels);
                 for (auto const &parent_id : parents_b) parent_list_b.insert(parent_id);
-                    parent_list_b.insert(label_b.id);
+                parent_list_b.insert(label_b.id);
 
                 bool same_family = false;
                 for (auto const &parent_id : parent_list_a)
@@ -1124,11 +1126,11 @@ void LArTPCMLReco3D::MergeShowerTouching(const supera::ImageMeta3D& meta,
                     if (same_family) break;
                 }
 
-
                 if (same_family && this->IsTouching(meta, label_a.energy, label_b.energy))
                 {
 
                     if (label_a.energy.size() > label_b.energy.size())
+//		    if (label_a.part.vtx.time < label_b.part.vtx.time)
                         this->MergeParticleLabel(labels, label_a.id, label_b.id);
                     else
                         this->MergeParticleLabel(labels, label_b.id, label_a.id);
@@ -1278,10 +1280,13 @@ void LArTPCMLReco3D::MergeTouchingLEScatter(const supera::ImageMeta3D& meta,
                 if (iy1 > iy2) diffy = iy1 - iy2; else diffy = iy2 - iy1;
                 if (iz1 > iz2) diffz = iz1 - iz2; else diffz = iz2 - iz1;
                 touching = diffx <= _touch_threshold && diffy <= _touch_threshold && diffz <= _touch_threshold;
-                if (touching && verbose)
+                if (touching)
                 {
-                    LOG_INFO()<<"Touching ("<<ix1<<","<<iy1<<","<<iz1<<") ("<<ix2<<","<<iy2<<","<<iz2<<")\n";
-                    LOG_INFO()<<"    Dist ("<<diffx<<","<<diffy<<","<<diffz<<")\n";
+		    if (verbose)
+	            {
+			    LOG_INFO()<<"Touching ("<<ix1<<","<<iy1<<","<<iz1<<") ("<<ix2<<","<<iy2<<","<<iz2<<")\n";
+			    LOG_INFO()<<"    Dist ("<<diffx<<","<<diffy<<","<<diffz<<")\n";
+		    }
                     break;
                 }
             }
@@ -1330,7 +1335,7 @@ void LArTPCMLReco3D::MergeTouchingLEScatter(const supera::ImageMeta3D& meta,
         }
         LOG_DEBUG() << "done" << std::endl;
         return result;
-    } // LArTPCMLReco3D::ParentShowerTrackIDs()
+    } // LArTPCMLReco3D::ParentShowerIDs()
 
     // ------------------------------------------------------
 
