@@ -341,10 +341,11 @@ void LArTPCMLReco3D::SetGroupID(std::vector<supera::ParticleLabel>& labels,
                         continue;
                     if(!labels[parent_index].valid)
                         continue;
+
                     auto parent_shape = labels[parent_index].part.shape;
                     auto parent_id    = labels[parent_index].id;
-                    if(labels[parent_index].part.pdg == 22) {
-                        // Keep walking so the outermost photon in the shower family is the group root.
+                    if(std::abs(labels[parent_index].part.pdg) == 11 || labels[parent_index].part.pdg == 22) {
+                        // Keep walking so the outermost EM particle in the shower family is the group root.
                         part.group_id = parent_id;
                         continue;
                     }
@@ -370,6 +371,7 @@ void LArTPCMLReco3D::SetGroupID(std::vector<supera::ParticleLabel>& labels,
         }
     }
 
+    // Low-energy group roots are not assigned a group ID in the switch above.
     for(auto const& label : labels) {
         if(!label.valid)
             continue;
