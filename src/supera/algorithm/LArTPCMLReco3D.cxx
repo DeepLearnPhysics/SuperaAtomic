@@ -337,13 +337,17 @@ void LArTPCMLReco3D::SetGroupID(std::vector<supera::ParticleLabel>& labels,
                 part.group_id = part.id;
                 for(auto const& parent_index : _mcpl.ParentIdArray(output2input.at(label.id)))
                 {
-                    auto parent_shape = labels[parent_index].part.shape;
-                    auto parent_id    = labels[parent_index].id;
-
                     if(parent_index == kINVALID_INDEX)
                         continue;
                     if(!labels[parent_index].valid)
                         continue;
+                    auto parent_shape = labels[parent_index].part.shape;
+                    auto parent_id    = labels[parent_index].id;
+                    if(labels[parent_index].part.pdg == 22) {
+                        // Keep walking so the outermost photon in the shower family is the group root.
+                        part.group_id = parent_id;
+                        continue;
+                    }
                     if(parent_shape == kShapeLEScatter)
                         continue;
                     if(parent_shape != kShapeShower && parent_shape != kShapeMichel && parent_shape != kShapeDelta)
@@ -364,6 +368,18 @@ void LArTPCMLReco3D::SetGroupID(std::vector<supera::ParticleLabel>& labels,
                 break;
             }
         }
+    }
+
+    for(auto const& label : labels) {
+        if(!label.valid)
+            continue;
+
+        auto const& group_id = label.part.group_id;
+        if(group_id == kINVALID_INSTANCEID || group_id == label.id)
+            continue;
+
+        // A referenced group root must also belong to its own group.
+        labels[output2input.at(group_id)].part.group_id = group_id;
     }
     LOG_INFO() << "done" << std::endl;
 }
