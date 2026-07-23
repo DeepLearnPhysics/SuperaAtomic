@@ -28,7 +28,6 @@ namespace supera {
 
     void Driver::Configure(const YAML::Node& cfg) 
     {
-        LOG_INFO() << "starting" << std::endl;
         if(cfg["SuperaDriver"]) {
             auto driver_cfg = cfg["SuperaDriver"];
             if(!driver_cfg.IsMap()) {
@@ -42,6 +41,7 @@ namespace supera {
             _assert_inout_voxel_count = driver_cfg["AssertInOutVoxelCount"].as<bool>();
         }
 
+        LOG_INFO() << "starting" << std::endl;
         LOG_WARNING()<<"BBox config..."<<std::endl;
         if(cfg["BBoxAlgorithm"] && cfg["BBoxConfig"] && cfg["BBoxConfig"].IsMap())
         {

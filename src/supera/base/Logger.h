@@ -34,6 +34,7 @@ namespace supera {
     /// Default constructor
     Logger(const std::string& name="no_name")
       : _ostrm(&std::cout)
+      , _level(_level_default)
       , _name(name)
     {}
     
@@ -86,7 +87,6 @@ namespace supera {
       auto iter = _logger_m->find(name);
       if(iter == _logger_m->end()) {
         iter = _logger_m->emplace(name,Logger(name)).first;
-        iter->second.set(msg::kINFO);
       }
       return iter->second;
     };
