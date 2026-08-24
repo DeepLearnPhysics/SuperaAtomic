@@ -890,6 +890,7 @@ void LArTPCMLReco3D::MergeShowerConversion(std::vector<supera::ParticleLabel>& l
 {
     LOG_INFO() << "starting" << std::endl;
     int merge_ctr = 0;
+    std::set<InstanceID_t> rejected_conversion_ids;
         //int invalid_ctr = 0;
     do
     {
@@ -919,6 +920,32 @@ void LArTPCMLReco3D::MergeShowerConversion(std::vector<supera::ParticleLabel>& l
                     << " (" << label.part.energy_deposit << ") MeV\n";
                     continue;
                 }
+
+                // A conversion electron may be absorbed by its photon
+                // parent: the photon has no ionization of its own, so the
+                // conversion deposits represent the photon shower.  Do not
+                // perform this instance merge into an electron or any other
+                // particle.  If an intermediate photon was filtered from the
+                // genealogy, the conversion must remain a separate instance;
+                // any EM-family grouping belongs in SetGroupID rather than
+                // in this destructive merge.
+                //
+                // Stop rather than looking beyond a non-photon parent: doing
+                // so would collapse distinct particle instances.
+                auto const parent_pdg = labels[parent_id].part.pdg;
+                if(parent_pdg != 22)
+                {
+                    if(rejected_conversion_ids.insert(label.id).second)
+                    {
+                        LOG_WARNING() << "Not merging conversion instance id " << label.id
+                        << " (track " << label.part.trackid << ", PDG " << label.part.pdg << ")"
+                        << " into non-photon parent instance id " << parent_id
+                        << " (track " << labels[parent_id].part.trackid
+                        << ", PDG " << parent_pdg << ")\n";
+                    }
+                    break;
+                }
+
                 found_id = parent_id;
                 break;
             }
