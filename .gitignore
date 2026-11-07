@@ -36,3 +36,7 @@ src/CMakeFiles
 cmake_install.cmake
 *Cache.txt
 Makefile
+
+# Source package discovery modules belong in version control.
+!cmake/
+!cmake/*.cmake

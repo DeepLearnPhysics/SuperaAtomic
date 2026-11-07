@@ -1,0 +1,23 @@
+name: V2 data and labeling build
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  core:
+    runs-on: ubuntu-24.04
+    container:
+      image: ubuntu:22.04@sha256:076e7bf82319619f28dd0aa9c02ab34b055ad37100395b4f49a2ffba04fb5e11
+    steps:
+      - name: Install build dependencies (no ROOT or LArCV)
+        run: apt-get update && apt-get install -y build-essential cmake git ca-certificates libyaml-cpp-dev clang-format-14=1:14.0.0-1ubuntu1.1 clang-tidy-14=1:14.0.0-1ubuntu1.1
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Check formatting of v2 additions
+        run: clang-format-14 --dry-run --Werror src/supera/data/Optical.h src/supera/data/EventRecord.h src/supera/io/EventWriter.h src/supera/io/larcv2/Writer.h src/supera/io/larcv2/Writer.cxx tests/v2/*.cxx
+      - name: Build shared model and existing labeling core
+        run: cmake -S . -B build/v2 -DSUPERA_BUILD_LABELING=ON -DSUPERA_BUILD_LARCV2=OFF && cmake --build build/v2 -j2 && ctest --test-dir build/v2 --output-on-failure
+      - name: Analyze shared record contract
+        run: clang-tidy-14 -p build/v2 tests/v2/Data_test.cxx

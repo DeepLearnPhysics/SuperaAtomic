@@ -1,3 +1,7 @@
+> **V2 development checkpoint:** the new root CMake entry point introduces an independent
+> data model and optional output components. See [the architecture](docs/architecture-v2.md).
+> Existing labeling APIs and the legacy `src/` build remain available; v2 is not released.
+
 # SuperaAtomic
 
 C++ software to generate true labels for `lartpc_mlreco3d` ([repository](https://github.com/DeepLearnPhysics/lartpc_mlreco3d)), a full data reconstruction chain of modular machine learning (ML) algorithms for 3D particle images. The repository provides Python binding via [`pybind11`](https://pybind11.readthedocs.io/en/stable/), which can be optionally turned off. This software does not implement a process executable to run Supera. An implementation to run this software with [EDepSim](https://github.com/ClarkMcGrew/edep-sim) framework and to produce [larcv](https://github.com/DeepLearnPhysics/larcv3), please see [edep2supera](https://github.com/DeepLearnPhysics/edep2supera).

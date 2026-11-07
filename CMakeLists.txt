@@ -1,0 +1,82 @@
+cmake_minimum_required(VERSION 3.20)
+project(Supera VERSION 2.0.0 LANGUAGES CXX)
+if(NOT DEFINED CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+# Development architecture, not a published v2 release. The legacy src/ entry
+# point and Python packaging remain available during the staged migration.
+option(SUPERA_BUILD_LABELING "Build the existing labeling core" OFF)
+option(SUPERA_BUILD_LARCV2 "Build the optional LArCV2 writer" OFF)
+include(GNUInstallDirs)
+include(CTest)
+include(CMakePackageConfigHelpers)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+add_library(supera_data INTERFACE)
+add_library(supera::data ALIAS supera_data)
+set_target_properties(supera_data PROPERTIES EXPORT_NAME data)
+target_compile_features(supera_data INTERFACE cxx_std_17)
+target_include_directories(supera_data INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+install(TARGETS supera_data EXPORT SuperaDataTargets)
+install(FILES src/supera/data/Optical.h src/supera/data/EventRecord.h
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/supera/data)
+install(FILES src/supera/io/EventWriter.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/supera/io)
+install(EXPORT SuperaDataTargets NAMESPACE supera:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Supera)
+
+if(SUPERA_BUILD_LABELING)
+  find_package(yaml-cpp REQUIRED)
+  file(GLOB core_sources CONFIGURE_DEPENDS
+    src/supera/base/*.cxx src/supera/data/*.cxx
+    src/supera/algorithm/*.cxx src/supera/process/*.cxx)
+  list(FILTER core_sources EXCLUDE REGEX "_pybind\\.cxx$")
+  add_library(supera_labeling SHARED ${core_sources})
+  add_library(supera::labeling ALIAS supera_labeling)
+  set_target_properties(supera_labeling PROPERTIES EXPORT_NAME labeling)
+  target_link_libraries(supera_labeling PUBLIC supera::data yaml-cpp)
+  if(BUILD_TESTING)
+    add_executable(labeling_smoke tests/v2/Labeling_smoke.cxx)
+    target_link_libraries(labeling_smoke PRIVATE supera::labeling)
+    add_test(NAME labeling_smoke COMMAND labeling_smoke)
+  endif()
+  install(TARGETS supera_labeling EXPORT SuperaLabelingTargets)
+  foreach(directory base data algorithm process)
+    install(DIRECTORY src/supera/${directory}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/supera/${directory}
+      FILES_MATCHING PATTERN "*.h" PATTERN "*pybind*" EXCLUDE PATTERN "LinkDef.h" EXCLUDE PATTERN "arxiv" EXCLUDE)
+  endforeach()
+  install(EXPORT SuperaLabelingTargets NAMESPACE supera:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Supera)
+endif()
+
+if(SUPERA_BUILD_LARCV2)
+  find_package(LArCV2 REQUIRED)
+  find_package(ROOT REQUIRED COMPONENTS Core Tree RIO)
+  add_library(supera_larcv2 SHARED src/supera/io/larcv2/Writer.cxx)
+  add_library(supera::larcv2 ALIAS supera_larcv2)
+  set_target_properties(supera_larcv2 PROPERTIES EXPORT_NAME larcv2)
+  target_compile_options(supera_larcv2 PRIVATE -Wall -Wextra -Wpedantic -Werror)
+  target_link_libraries(supera_larcv2 PUBLIC supera::data PRIVATE LArCV2::larcv ROOT::Core ROOT::Tree ROOT::RIO)
+  install(TARGETS supera_larcv2 EXPORT SuperaLArCV2Targets)
+  install(FILES src/supera/io/larcv2/Writer.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/supera/io/larcv2)
+  install(EXPORT SuperaLArCV2Targets NAMESPACE supera:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Supera)
+  if(BUILD_TESTING)
+    add_executable(writer_test tests/v2/Writer_test.cxx)
+    target_link_libraries(writer_test PRIVATE supera::larcv2 LArCV2::larcv ROOT::Core ROOT::Tree ROOT::RIO)
+    add_test(NAME writer_contract COMMAND writer_test)
+  endif()
+endif()
+
+if(BUILD_TESTING)
+  add_executable(data_test tests/v2/Data_test.cxx)
+  target_link_libraries(data_test PRIVATE supera::data)
+  add_test(NAME data_contract COMMAND data_test)
+endif()
+configure_package_config_file(cmake/SuperaConfig.cmake.in
+  "${CMAKE_CURRENT_BINARY_DIR}/SuperaConfig.cmake" INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Supera)
+write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/SuperaConfigVersion.cmake"
+  VERSION ${PROJECT_VERSION} COMPATIBILITY SameMajorVersion)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/SuperaConfig.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/SuperaConfigVersion.cmake" DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Supera)
