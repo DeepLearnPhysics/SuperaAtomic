@@ -24,7 +24,7 @@ target_include_directories(supera_data INTERFACE
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 install(TARGETS supera_data EXPORT SuperaDataTargets)
 install(FILES src/supera/data/Optical.h src/supera/data/EventRecord.h
-  src/supera/data/AuxDet.h src/supera/data/Measurement.h src/supera/data/Generator.h
+  src/supera/data/Validity.h src/supera/data/AuxDet.h src/supera/data/Measurement.h src/supera/data/Generator.h
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/supera/data)
 install(FILES src/supera/process/SelectGenerator.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/supera/process)
 install(FILES src/supera/io/EventWriter.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/supera/io)
@@ -81,6 +81,9 @@ if(SUPERA_BUILD_LARCV2)
 endif()
 
 if(BUILD_TESTING)
+  add_executable(validity_test tests/v2/Validity_test.cxx)
+  target_link_libraries(validity_test PRIVATE supera::data)
+  add_test(NAME validity_contract COMMAND validity_test)
   add_executable(data_test tests/v2/Data_test.cxx)
   target_link_libraries(data_test PRIVATE supera::data)
   add_test(NAME data_contract COMMAND data_test)

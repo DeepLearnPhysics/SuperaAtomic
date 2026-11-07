@@ -8,6 +8,7 @@
 #include "larcv/core/DataFormat/EventFlash.h"
 #include "larcv/core/DataFormat/IOManager.h"
 
+#include <cmath>
 #include <limits>
 #include <set>
 #include <stdexcept>
@@ -96,12 +97,24 @@ void Writer::write(const EventRecord &event) {
     flashes.reserve(collection.flashes.size());
 
     for (const auto &flash : collection.flashes) {
-      if (flash.id >= larcv::kINVALID_INSTANCEID)
+      if (flash.id < 0 || static_cast<std::uint64_t>(flash.id) >= larcv::kINVALID_INSTANCEID)
         throw std::invalid_argument("Flash ID cannot be represented in LArCV2");
+      // Validate canonical values before any output conversion or event mutation.
+      for (const auto value : {flash.time_us, flash.time_width_us, flash.absolute_time,
+                               flash.fast_to_total, flash.x_cm, flash.x_width_cm, flash.y_cm,
+                               flash.y_width_cm, flash.z_cm, flash.z_width_cm})
+        require_measurement(value);
+      for (const auto *values : {&flash.pe, &flash.wire_centers, &flash.wire_widths})
+        for (const auto value : *values)
+          require_measurement(value);
+
       flashes.emplace_back(flash.time_us, flash.time_width_us, flash.absolute_time, flash.frame,
                            flash.pe, flash.in_beam_frame, flash.on_beam_time, flash.fast_to_total,
-                           flash.x_cm, flash.x_width_cm, flash.y_cm, flash.y_width_cm, flash.z_cm,
-                           flash.z_width_cm, flash.wire_centers, flash.wire_widths, flash.id);
+                           std::isnan(flash.x_cm) ? std::numeric_limits<double>::max() : flash.x_cm,
+                           std::isnan(flash.x_width_cm) ? std::numeric_limits<double>::max()
+                                                        : flash.x_width_cm,
+                           flash.y_cm, flash.y_width_cm, flash.z_cm, flash.z_width_cm,
+                           flash.wire_centers, flash.wire_widths, flash.id);
     }
   }
 

@@ -4,10 +4,15 @@
 #include <limits>
 #include <map>
 #include <stdexcept>
+#include <type_traits>
 
 namespace supera::io::larcv2 {
 namespace {
 float exact_float(double value) {
+  if (std::isnan(value))
+    return std::numeric_limits<float>::lowest();
+  if (std::isinf(value))
+    throw std::invalid_argument("Noncanonical infinite auxiliary measurement");
   if (std::isfinite(value) && std::abs(value) > std::numeric_limits<float>::max())
     throw std::invalid_argument("Auxiliary value exceeds LArCV2 float range");
 
@@ -53,9 +58,20 @@ T time_value(const AuxDetSpacePoint &point, const std::string &name, TimeUnit un
 
   if (!found || found->unit != unit || found->reference != TimeReference::SourceDefined ||
       found->clock != "sbn_crt_source" || found->uncertainty ||
-      !std::holds_alternative<T>(found->value))
+      (!std::holds_alternative<T>(found->value) &&
+       !(std::is_same_v<T, std::uint64_t> && std::holds_alternative<std::monostate>(found->value))))
     throw std::invalid_argument("Unsupported auxiliary clock contract for LArCV2");
 
+  if constexpr (std::is_same_v<T, std::uint64_t>) {
+    if (std::holds_alternative<std::monostate>(found->value))
+      return std::numeric_limits<std::uint64_t>::max();
+  } else {
+    const auto value = std::get<T>(found->value);
+    if (std::isinf(value))
+      throw std::invalid_argument("Noncanonical infinite auxiliary clock");
+    if (std::isnan(value))
+      return std::numeric_limits<double>::lowest();
+  }
   return std::get<T>(found->value);
 }
 } // namespace
@@ -69,18 +85,17 @@ std::vector<larcv::CRTHit> project_auxiliary(const AuxDetSpacePointCollection &c
   result.reserve(collection.points.size());
 
   for (const auto &point : collection.points) {
-    // Reject missing estimates and information the legacy schema cannot retain.
-    if (point.id >= larcv::kINVALID_INSTANCEID || !point.position ||
-        !point.position->uncertainty_cm || !point.signal || !point.plane || point.complete ||
-        point.times.size() != 5)
+    // Reject invalid identities and information the legacy schema cannot retain.
+    if (point.id < 0 || static_cast<std::uint64_t>(point.id) >= larcv::kINVALID_INSTANCEID ||
+        point.complete || point.times.size() != 5)
       throw std::invalid_argument("Incomplete or unsupported auxiliary record for LArCV2");
 
     // Set every LArCV scalar explicitly: its default constructor does not do so.
     larcv::CRTHit hit;
     hit.id(point.id);
-    hit.peshit(pe(*point.signal));
+    hit.peshit(pe(point.signal.value_or(AuxDetSignal{missing_value, SignalUnit::Photoelectron})));
 
-    // Preserve raw clock fields; do not reinterpret their origins.
+    // Encode missing clocks explicitly without reinterpreting their origins.
     hit.ts0_s(time_value<std::uint64_t>(point, "ts0_s", TimeUnit::Second));
     hit.ts0_s_corr(time_value<double>(point, "ts0_s_corr", TimeUnit::Second));
     hit.ts0_ns(time_value<double>(point, "ts0_ns", TimeUnit::Nanosecond));
@@ -88,10 +103,12 @@ std::vector<larcv::CRTHit> project_auxiliary(const AuxDetSpacePointCollection &c
     hit.ts1_ns(time_value<double>(point, "ts1_ns", TimeUnit::Nanosecond));
 
     // Transfer source location annotations and reconstructed spatial estimates.
-    hit.plane(integer(*point.plane));
+    hit.plane(integer(point.plane.value_or(-1)));
     hit.tagger(point.region);
-    const auto &xyz = point.position->cm;
-    const auto &error = *point.position->uncertainty_cm;
+    const auto position = point.position.value_or(AuxDetPosition{});
+    const auto &xyz = position.cm;
+    const auto error = position.uncertainty_cm.value_or(
+        std::array<double, 3>{missing_value, missing_value, missing_value});
     hit.x_pos(exact_float(xyz[0]));
     hit.y_pos(exact_float(xyz[1]));
     hit.z_pos(exact_float(xyz[2]));

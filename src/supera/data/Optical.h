@@ -3,6 +3,8 @@
 
 #include "supera/data/Measurement.h"
 
+#include "supera/data/Validity.h"
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -25,28 +27,27 @@ struct OpticalConventions {
   std::string absolute_time_reference;
 };
 
-/// Existing reconstructed flash attributes, with no validity cuts or recalibration.
-/// Values may contain upstream sentinels/defaults. A stored value is not by itself
-/// evidence that a quantity was measured. Vectors retain source ordering.
+/// Reconstructed flash attributes with canonical missing measurements.
+/// Vectors retain source ordering; no calibration or physics cuts are applied.
 struct OpticalFlash {
-  std::uint64_t id{}; // Local to its named collection, not a global event identity.
+  RecordIndex id{missing_index}; // Local to its named collection, not a global event identity.
 
-  double time_us{}; // Trigger-relative, as supplied by the input adapter.
-  double time_width_us{};
-  double absolute_time{}; // Interpretation belongs to OpticalConventions.
+  double time_us{missing_value}; // Trigger-relative, as supplied by the input adapter.
+  double time_width_us{missing_value};
+  double absolute_time{missing_value}; // Interpretation belongs to OpticalConventions.
   unsigned int frame{};
 
   std::vector<double> pe;
   bool in_beam_frame{};
   int on_beam_time{}; // Keep the source integer; do not narrow to bool.
-  double fast_to_total{};
+  double fast_to_total{missing_value};
 
-  double x_cm{};
-  double x_width_cm{};
-  double y_cm{};
-  double y_width_cm{};
-  double z_cm{};
-  double z_width_cm{};
+  double x_cm{missing_value};
+  double x_width_cm{missing_value};
+  double y_cm{missing_value};
+  double y_width_cm{missing_value};
+  double z_cm{missing_value};
+  double z_width_cm{missing_value};
 
   std::vector<double> wire_centers;
   std::vector<double> wire_widths;

@@ -2,6 +2,7 @@
 #include "TTree.h"
 #include "larcv/core/DataFormat/EventNeutrino.h"
 #include "larcv/core/DataFormat/EventParticle.h"
+#include "supera/io/larcv2/Generator.h"
 #include "supera/io/larcv2/Writer.h"
 
 #include <filesystem>
@@ -52,9 +53,11 @@ int main() try {
   auto positron = incoming;
   positron.pdg = -11;
   positron.status = 1;
+  positron.particle_index = 1;
   positron.track_id = -9;
   auto electron = positron;
   electron.pdg = 11;
+  electron.particle_index = 2;
   supera::GeneratorRecord truth{4, 1, nu, {positron, electron}};
   supera::EventRecord event;
   event.id = {1, 2, 3};
@@ -62,6 +65,27 @@ int main() try {
                              {{0, "missing", false, {}},
                               {1, "empty", true, {}},
                               {2, "generator", true, {truth, truth}}}});
+
+  // Missing source codes have explicit destination encodings, independent of constructors.
+  auto missing = event.generator.front();
+  auto &missing_nu = *missing.sources[2].records[0].neutrino;
+  missing_nu.incoming.track_id.reset();
+  missing_nu.lepton_track_id.reset();
+  missing_nu.current.reset();
+  missing_nu.mode.reset();
+  missing_nu.interaction_type.reset();
+  missing_nu.target.reset();
+  missing_nu.nucleon.reset();
+  missing_nu.quark.reset();
+  missing_nu.hadronic_mass_gev = supera::missing_value;
+  const auto projected = supera::io::larcv2::project_legacy_generator(missing);
+  const auto &missing_output = projected.neutrinos.front();
+  require(missing_output.nu_track_id() == std::numeric_limits<unsigned int>::max() &&
+          missing_output.lepton_track_id() == std::numeric_limits<unsigned int>::max() &&
+          missing_output.current_type() == -1 && missing_output.interaction_mode() == -1 &&
+          missing_output.interaction_type() == -1 && missing_output.target() == -1 &&
+          missing_output.nucleon() == -1 && missing_output.quark() == -1 &&
+          std::isnan(missing_output.hadronic_invariant_mass()));
 
   // Reject invalid events before any manager mutation; then write nonempty/empty events.
   const std::string filename = "generator-writer.root";
@@ -86,7 +110,7 @@ int main() try {
     invalid.generator[0].sources[2].records[0].particles[0].initial.reset();
     rejects([&] { writer.write(invalid); });
     invalid = event;
-    invalid.generator[0].sources[2].records[0].neutrino->theta_rad.reset();
+    invalid.generator[0].sources[2].records[0].neutrino->theta_rad = supera::missing_value;
     rejects([&] { writer.write(invalid); });
     invalid = event;
     invalid.generator[0].sources[2].present = false;

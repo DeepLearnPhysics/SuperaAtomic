@@ -14,6 +14,7 @@ namespace supera {
 inline GeneratorCollection select_generator(GeneratorCollection input,
                                             std::optional<int> origin = {}) {
   for (auto &source : input.sources) {
+    require_identity(source.source_index);
     // Missing products cannot simultaneously contain interaction records.
     if (!source.present && !source.records.empty())
       throw std::invalid_argument("Missing generator source contains records");
@@ -26,6 +27,7 @@ inline GeneratorCollection select_generator(GeneratorCollection input,
         records.end());
 
     for (auto &truth : records) {
+      require_identity(truth.truth_index);
       // Preserve the original source particle indices after status selection.
       auto &particles = truth.particles;
       particles.erase(std::remove_if(particles.begin(), particles.end(),
@@ -38,8 +40,9 @@ inline GeneratorCollection select_generator(GeneratorCollection input,
           throw std::invalid_argument(
               "Selected generator particle has no trajectory: " + source.source +
               " truth=" + std::to_string(truth.truth_index) +
-              " particle=" + std::to_string(particle.particle_index.value_or(0)));
-      if (truth.neutrino && (!truth.neutrino->incoming.initial || !truth.neutrino->theta_rad))
+              " particle=" + std::to_string(particle.particle_index));
+      if (truth.neutrino &&
+          (!truth.neutrino->incoming.initial || !std::isfinite(truth.neutrino->theta_rad)))
         throw std::invalid_argument("Generator neutrino/lepton has no trajectory: " +
                                     source.source);
     }

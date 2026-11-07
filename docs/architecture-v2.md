@@ -45,8 +45,8 @@ The new entry point does not yet provide Python/ROOT bindings for the v2 records
 
 `OpticalFlash` preserves every stored OpFlash attribute required by legacy
 SuperaOptical. IDs are collection-local; vectors retain their ordering and own
-their values. There is no recalibration, filtering, time shift, or sentinel
-replacement. Stored beam flags and fast fractions are not asserted to be measured.
+their values. Missingness follows [the validity contract](validity.md); there is
+no recalibration, physics filtering or time shift. Stored beam flags and fast fractions are not asserted to be measured.
 
 `OpticalFlashCollection` separates the logical collection name from the configured
 native source identifier. `OpticalConventions` records detector, region, coordinate
@@ -75,8 +75,8 @@ and a cosmic-tagger measurement does not classify its particle as cosmic.
 
 Position and uncertainty (cm), signal with explicit units, named clock readings,
 source-scoped readout/channel IDs, plane/region annotations, and reconstruction
-completeness are separate typed fields. Missing estimates stay absent. The initial
-reader preserves numeric source sentinels without declaring them physically valid.
+completeness are separate typed fields. Missing records stay absent; missing
+floating components use NaN. Readers normalize source sentinels at ingestion.
 Unsigned integer clocks remain exact above 2^53; a clock reading also declares its
 unit and reference. An uncertainty, when present, has that reading's unit.
 

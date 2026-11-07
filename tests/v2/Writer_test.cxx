@@ -36,7 +36,7 @@ int main() {
     rejects([&] { writer.write(event); });
     event.optical.front().name = "east";
     event.optical.front().flashes.emplace_back();
-    event.optical.front().flashes.front().id = std::numeric_limits<std::uint64_t>::max();
+    event.optical.front().flashes.front().id = supera::missing_index;
     rejects([&] { writer.write(event); });
     event.optical.front().flashes.front().id = 0;
     event.id.event = std::numeric_limits<std::uint64_t>::max();
@@ -60,9 +60,18 @@ int main() {
     flash.z_width_cm = 3.;
     flash.wire_centers = {4., 5.};
     flash.wire_widths = {0.4, 0.5};
+    auto infinite = event;
+    infinite.optical.front().flashes.front().y_cm = std::numeric_limits<double>::infinity();
+    rejects([&] { writer.write(infinite); });
     writer.write(event);
     event.id.event = 2;
     event.optical.front().flashes.clear();
+    writer.write(event);
+    event.id.event = 3;
+    supera::OpticalFlash missing;
+    missing.id = 0;
+    missing.y_cm = 12.;
+    event.optical.front().flashes = {missing};
     writer.write(event);
     writer.close();
     writer.close();
@@ -78,7 +87,7 @@ int main() {
   {
     TFile file(filename.c_str(), "READ");
     auto *tree = file.Get<TTree>("opflash_east_tree");
-    if (!tree || tree->GetEntries() != 2)
+    if (!tree || tree->GetEntries() != 3)
       throw std::runtime_error("Missing writer events");
     larcv::EventFlash storage;
     auto *record = &storage;
@@ -96,6 +105,13 @@ int main() {
       throw std::runtime_error("Writer changed a field or event identity");
     if (tree->GetEntry(1) <= 0 || record->event() != 2 || !record->as_vector().empty())
       throw std::runtime_error("Writer retained stale flashes");
+    if (tree->GetEntry(2) <= 0 || record->as_vector().size() != 1)
+      throw std::runtime_error("Missing normalized flash");
+    const auto &missing = record->as_vector().front();
+    if (missing.xCenter() != std::numeric_limits<double>::max() ||
+        missing.xWidth() != std::numeric_limits<double>::max() || missing.yCenter() != 12. ||
+        !std::isnan(missing.time()) || !std::isnan(missing.zCenter()))
+      throw std::runtime_error("Incorrect optical missing-value projection");
     tree->ResetBranchAddresses();
   }
   std::filesystem::remove(filename);

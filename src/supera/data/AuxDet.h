@@ -3,6 +3,8 @@
 
 #include "supera/data/Measurement.h"
 
+#include "supera/data/Validity.h"
+
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -26,7 +28,7 @@ struct AuxDetConventions {
 };
 
 struct AuxDetSignal {
-  double value{};
+  double value{missing_value};
   SignalUnit unit{SignalUnit::Unspecified};
 };
 
@@ -34,7 +36,7 @@ struct AuxDetSignal {
 /// timestamps: a name such as ts0_ns does not establish its origin or epoch.
 struct AuxDetTimeReading {
   std::string name;
-  std::variant<std::uint64_t, double> value{std::uint64_t{0}};
+  std::variant<std::monostate, std::uint64_t, double> value;
   TimeUnit unit{TimeUnit::Unspecified};
   TimeReference reference{TimeReference::Unspecified};
   std::string clock;
@@ -42,7 +44,7 @@ struct AuxDetTimeReading {
 };
 
 struct AuxDetPosition {
-  std::array<double, 3> cm{};
+  std::array<double, 3> cm{missing_value, missing_value, missing_value};
   std::optional<std::array<double, 3>> uncertainty_cm;
 };
 
@@ -61,7 +63,7 @@ struct AuxDetReadout {
 /// A reconstructed localized measurement, not a scintillator slab, raw trigger,
 /// track, or cosmic-particle label. Missing estimates stay explicitly absent.
 struct AuxDetSpacePoint {
-  std::uint64_t id{};
+  RecordIndex id{missing_index};
 
   std::optional<AuxDetPosition> position;
   std::optional<AuxDetSignal> signal;

@@ -86,10 +86,7 @@ int main() try {
     reject_change([](auto &p) { p.position->cm[0] = std::numeric_limits<double>::max(); });
 
     // Missing estimates and unsupported completeness cannot be fabricated or dropped.
-    reject_change([](auto &p) { p.position.reset(); });
-    reject_change([](auto &p) { p.position->uncertainty_cm.reset(); });
-    reject_change([](auto &p) { p.signal.reset(); });
-    reject_change([](auto &p) { p.plane.reset(); });
+
     reject_change([](auto &p) { p.complete = false; });
 
     // Hardware mappings must fit the legacy identity and signal contract.
@@ -99,7 +96,7 @@ int main() try {
       p.readouts.back().channels[0].channel = std::numeric_limits<std::int64_t>::max();
     });
     reject_change([](auto &p) { p.readouts.back().channels[0].signal.unit = SignalUnit::MeV; });
-    reject_change([](auto &p) { p.id = std::numeric_limits<std::uint64_t>::max(); });
+    reject_change([](auto &p) { p.id = supera::missing_index; });
 
     // Clock names, types, units, and references form one explicit contract.
     reject_change([](auto &p) { p.times.pop_back(); });
@@ -123,11 +120,20 @@ int main() try {
     invalid.auxiliary[0].conventions.source_schema = AuxDetSourceSchema::Generic;
     rejects([&] { writer.write(invalid); });
 
-    // Only these two valid events should reach the file.
+    // Valid events and canonical missing estimates must both be representable.
     writer.write(event);
 
     event.id.event = 4;
     event.auxiliary.front().points.clear();
+    writer.write(event);
+    event.id.event = 5;
+    auto missing = point();
+    missing.position.reset();
+    missing.signal.reset();
+    missing.plane.reset();
+    missing.times[0].value = std::monostate{};
+    missing.times[1].value = missing_value;
+    event.auxiliary.front().points = {missing};
     writer.write(event);
     writer.close();
   }
@@ -136,7 +142,7 @@ int main() try {
   {
     TFile file(filename.c_str(), "READ");
     auto *tree = file.Get<TTree>("crthit_aux_tree");
-    require(tree && tree->GetEntries() == 2);
+    require(tree && tree->GetEntries() == 3);
     larcv::EventCRTHit storage;
     auto *record = &storage;
     tree->SetBranchAddress("crthit_aux_branch", &record);
@@ -156,6 +162,14 @@ int main() try {
 
     // The second event must clear the previous point.
     require(tree->GetEntry(1) > 0 && record->event() == 4 && record->as_vector().empty());
+    require(tree->GetEntry(2) > 0 && record->as_vector().size() == 1);
+    const auto &missing = record->as_vector().front();
+    require(missing.x_pos() == std::numeric_limits<float>::lowest() &&
+            missing.y_pos() == std::numeric_limits<float>::lowest() &&
+            missing.x_err() == std::numeric_limits<float>::lowest() &&
+            missing.peshit() == std::numeric_limits<float>::lowest() && missing.plane() == -1 &&
+            missing.ts0_s() == std::numeric_limits<std::uint64_t>::max() &&
+            missing.ts0_s_corr() == std::numeric_limits<double>::lowest());
     tree->ResetBranchAddresses();
   }
 
