@@ -19,6 +19,7 @@ template <class F> void rejects(F &&action) {
   throw std::runtime_error("Expected invalid_argument");
 }
 } // namespace
+
 int main() {
   using supera::io::larcv2::Writer;
   const std::string filename = "writer-contract.root";

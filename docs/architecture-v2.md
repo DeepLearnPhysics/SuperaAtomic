@@ -15,8 +15,8 @@ native event products
     -> selected output implementation
 ```
 
-The first slice is optical only: extraction and serialization, with no labeling
-step required. The existing particle `EventInput`, `EventOutput`, and labeling
+The current slices cover optical flashes and auxiliary space points: extraction
+and serialization, with no labeling step required. The existing particle `EventInput`, `EventOutput`, and labeling
 algorithms are retained unchanged. Their integration into a broader envelope
 will be a later reviewed migration, not an implicit conversion between unrelated
 input and result types.
@@ -25,8 +25,9 @@ input and result types.
 | --- | --- | --- |
 | `supera::data` | Owned records, conventions, event identity, sink interface | C++17 standard library |
 | `supera::labeling` | Existing Atomic algorithms | Data model, yaml-cpp |
-| `supera::larcv2` | Existing optical LArCV2 compatibility projection | Data model, LArCV2, ROOT |
+| `supera::larcv2` | Optical and supported auxiliary LArCV2 projections | Data model, LArCV2, ROOT |
 | `larsoft2supera::optical` (other repository) | Native OpFlash to shared records | Data model, lardataobj |
+| `larsoft2supera::auxiliary` (other repository) | Native SBN CRT to shared auxiliary records | Data model, sbnobj |
 | art integration module (other repository) | Event access and chosen sink lifecycle | art, extraction target, selected sink |
 
 `EventWriter` borrows an event synchronously; it cannot retain event references
@@ -65,10 +66,37 @@ availability, provenance, and tests. In particular, per-field measured/defaulted
 status and explicit non-contiguous sensor-ID mappings are not implemented yet.
 Do not infer those capabilities from the presence of a conventions record.
 
+## Auxiliary record contract
+
+`AuxDetSpacePoint` represents a localized reconstructed measurement, not detector
+hardware or every possible auxiliary instrument. Technology and subsystem roles
+are collection metadata: scintillator technology does not imply cosmic tagging,
+and a cosmic-tagger measurement does not classify its particle as cosmic.
+
+Position and uncertainty (cm), signal with explicit units, named clock readings,
+source-scoped readout/channel IDs, plane/region annotations, and reconstruction
+completeness are separate typed fields. Missing estimates stay absent. The initial
+reader preserves numeric source sentinels without declaring them physically valid.
+Unsigned integer clocks remain exact above 2^53; a clock reading also declares its
+unit and reference. An uncertainty, when present, has that reading's unit.
+
+The `SbnCrtHit` source contract preserves all five raw timestamp fields without
+assuming common epoch or correction semantics. It is not an output format or a
+cosmic-particle flag. Readout groups preserve empty groups and channel ordering;
+readout IDs are not AuxDet geometry IDs. Geometry links, raw triggers, tracks,
+TOF relations, and other instrument records remain future typed extensions.
+
+The current LArCV2 projection supports this source contract only. It rejects
+missing required values, unsupported clock conventions, ADC/energy in place of
+PE, lossy float conversions, out-of-range IDs, duplicate readout groups, and
+nonrepresentable timing uncertainties/completeness. A future output can retain
+these quantities natively. The existing source-preserving ICARUS mapping does
+not invent values to satisfy the old output schema.
+
 ## LArCV2 boundary
 
-Only `src/supera/io/larcv2/Writer.cxx` includes LArCV headers in the new production
-code. Its public header hides the concrete implementation. Input conversion and
+Only the private implementation under `src/supera/io/larcv2` includes LArCV
+headers in the new production code. Its public header hides the concrete implementation. Input conversion and
 shared records do not use LArCV classes or constants.
 
 The writer intentionally projects the existing fields, collection names, and event
@@ -103,6 +131,6 @@ It is not full labeling parity validation.
 
 The coordinated larsoft2supera integration suite builds and installs both
 repositories, builds a separate consumer, verifies fixture checksums, exercises
-art product lookup and empty collections, and compares both flash products
+art product lookup and empty collections, and compares optical-only and combined optical/CRT products
 against both frozen legacy references. It also rejects deliberately corrupted
 comparison fixtures. Its large input and UPS products remain externally provisioned.

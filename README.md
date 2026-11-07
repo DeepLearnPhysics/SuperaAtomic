@@ -33,6 +33,9 @@ pytest test
 ** Currently unit test is disabled. TODO: revive the unit test after lots of changes in the source code. **
 
 ## How to contribute
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the shared readability convention and
+v2 validation requirements.
 1. Fork this repository to your personal github account.
 2. Clone the repository to your local machine. Follow the build/install instruction above and make sure you can set up.
 3. Create your branch to contain your own development.  Code code code.

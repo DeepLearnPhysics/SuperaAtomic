@@ -16,7 +16,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Check formatting of v2 additions
-        run: clang-format-14 --dry-run --Werror src/supera/data/Optical.h src/supera/data/EventRecord.h src/supera/io/EventWriter.h src/supera/io/larcv2/Writer.h src/supera/io/larcv2/Writer.cxx tests/v2/*.cxx
+        run: clang-format-14 --dry-run --Werror src/supera/data/AuxDet.h src/supera/data/Measurement.h src/supera/io/larcv2/AuxDet.h src/supera/io/larcv2/AuxDet.cxx src/supera/data/Optical.h src/supera/data/EventRecord.h src/supera/io/EventWriter.h src/supera/io/larcv2/Writer.h src/supera/io/larcv2/Writer.cxx tests/v2/*.cxx
       - name: Build shared model and existing labeling core
         run: cmake -S . -B build/v2 -DSUPERA_BUILD_LABELING=ON -DSUPERA_BUILD_LARCV2=OFF && cmake --build build/v2 -j2 && ctest --test-dir build/v2 --output-on-failure
       - name: Analyze shared record contract

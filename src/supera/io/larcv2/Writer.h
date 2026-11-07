@@ -8,12 +8,13 @@
 #include <vector>
 
 namespace supera::io::larcv2 {
-/// Compatibility projection of optical records into the existing LArCV2 schema.
-/// Collection provenance/conventions are not representable in that schema.
-/// This class is serial and must not be called concurrently.
+/// Compatibility projection of optical and supported auxiliary records into the existing LArCV2
+/// schema. Collection provenance/conventions are not representable in that schema. This class is
+/// serial and must not be called concurrently.
 class Writer final : public EventWriter {
 public:
-  Writer(const std::string &filename, const std::vector<std::string> &collections);
+  Writer(const std::string &filename, const std::vector<std::string> &collections,
+         const std::vector<std::string> &auxiliary_collections = {});
   ~Writer() override;
   Writer(const Writer &) = delete;
   Writer &operator=(const Writer &) = delete;
