@@ -1,6 +1,9 @@
 #include "supera/io/larcv2/Writer.h"
 #include "AuxDet.h"
+#include "Generator.h"
 #include "larcv/core/DataFormat/EventCRTHit.h"
+#include "larcv/core/DataFormat/EventNeutrino.h"
+#include "larcv/core/DataFormat/EventParticle.h"
 
 #include "larcv/core/DataFormat/EventFlash.h"
 #include "larcv/core/DataFormat/IOManager.h"
@@ -16,14 +19,17 @@ public:
   larcv::IOManager manager{larcv::IOManager::kWRITE};
   std::vector<std::string> collections;
   std::vector<std::string> auxiliary_collections;
+  std::vector<std::string> generator_collections;
   bool open{false};
 };
 
 Writer::Writer(const std::string &filename, const std::vector<std::string> &collections,
-               const std::vector<std::string> &auxiliary_collections)
+               const std::vector<std::string> &auxiliary_collections,
+               const std::vector<std::string> &generator_collections)
     : impl_(std::make_unique<Impl>()) {
   // Validate the complete output inventory before opening a file.
-  if (filename.empty() || (collections.empty() && auxiliary_collections.empty()))
+  if (filename.empty() ||
+      (collections.empty() && auxiliary_collections.empty() && generator_collections.empty()))
     throw std::invalid_argument("Output filename and collections must not be empty");
 
   std::set<std::string> names;
@@ -38,9 +44,16 @@ Writer::Writer(const std::string &filename, const std::vector<std::string> &coll
       throw std::invalid_argument("Auxiliary output names must be nonempty and unique");
   }
 
+  names.clear();
+  for (const auto &name : generator_collections) {
+    if (name.empty() || !names.insert(name).second)
+      throw std::invalid_argument("Generator output names must be nonempty and unique");
+  }
+
   // Open the sink only after configuration validation succeeds.
   impl_->auxiliary_collections = auxiliary_collections;
   impl_->collections = collections;
+  impl_->generator_collections = generator_collections;
   impl_->manager.set_out_file(filename);
   if (!impl_->manager.initialize())
     throw std::runtime_error("Cannot initialize LArCV2 output");
@@ -51,6 +64,10 @@ Writer::Writer(const std::string &filename, const std::vector<std::string> &coll
     impl_->manager.get_data<larcv::EventFlash>(name);
   for (const auto &name : auxiliary_collections)
     impl_->manager.get_data<larcv::EventCRTHit>(name);
+  for (const auto &name : generator_collections) {
+    impl_->manager.get_data<larcv::EventParticle>(name);
+    impl_->manager.get_data<larcv::EventNeutrino>(name);
+  }
 }
 
 Writer::~Writer() {
@@ -99,6 +116,17 @@ void Writer::write(const EventRecord &event) {
     auxiliary.push_back(project_auxiliary(event.auxiliary[i]));
   }
 
+  // Project selected generator records before committing any product.
+  if (event.generator.size() != impl_->generator_collections.size())
+    throw std::invalid_argument("Event generator inventory differs from configuration");
+
+  std::vector<LegacyGeneratorProducts> generator;
+  for (std::size_t i = 0; i < event.generator.size(); ++i) {
+    if (event.generator[i].name != impl_->generator_collections[i])
+      throw std::invalid_argument("Event generator collection name/order mismatch");
+    generator.push_back(project_legacy_generator(event.generator[i]));
+  }
+
   // LArCV2 stores event IDs as size_t. Do not silently narrow on other platforms.
   for (const auto value : {event.id.run, event.id.subrun, event.id.event})
     if (value >= std::numeric_limits<std::size_t>::max())
@@ -112,6 +140,13 @@ void Writer::write(const EventRecord &event) {
   for (std::size_t i = 0; i < auxiliary.size(); ++i)
     impl_->manager.get_data<larcv::EventCRTHit>(impl_->auxiliary_collections[i])
         .emplace(std::move(auxiliary[i]));
+
+  for (std::size_t i = 0; i < generator.size(); ++i) {
+    impl_->manager.get_data<larcv::EventParticle>(impl_->generator_collections[i])
+        .emplace(std::move(generator[i].particles));
+    impl_->manager.get_data<larcv::EventNeutrino>(impl_->generator_collections[i])
+        .emplace(std::move(generator[i].neutrinos));
+  }
 
   if (!impl_->manager.save_entry())
     throw std::runtime_error("Cannot save LArCV2 event");

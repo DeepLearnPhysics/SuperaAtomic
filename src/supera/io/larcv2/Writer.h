@@ -14,7 +14,8 @@ namespace supera::io::larcv2 {
 class Writer final : public EventWriter {
 public:
   Writer(const std::string &filename, const std::vector<std::string> &collections,
-         const std::vector<std::string> &auxiliary_collections = {});
+         const std::vector<std::string> &auxiliary_collections = {},
+         const std::vector<std::string> &generator_collections = {});
   ~Writer() override;
   Writer(const Writer &) = delete;
   Writer &operator=(const Writer &) = delete;

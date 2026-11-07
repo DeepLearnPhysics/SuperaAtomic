@@ -15,7 +15,7 @@ native event products
     -> selected output implementation
 ```
 
-The current slices cover optical flashes and auxiliary space points: extraction
+The current slices cover optical flashes, auxiliary space points, and generator truth: extraction
 and serialization, with no labeling step required. The existing particle `EventInput`, `EventOutput`, and labeling
 algorithms are retained unchanged. Their integration into a broader envelope
 will be a later reviewed migration, not an implicit conversion between unrelated
@@ -92,6 +92,32 @@ PE, lossy float conversions, out-of-range IDs, duplicate readout groups, and
 nonrepresentable timing uncertainties/completeness. A future output can retain
 these quantities natively. The existing source-preserving ICARUS mapping does
 not invent values to satisfy the old output schema.
+
+## Generator truth contract
+
+`GeneratorCollection` preserves ordered source records, availability, original
+MCTruth indices, and original particle indices. Track IDs remain signed. A source
+slot is stable even when a preceding product is absent; a present-empty product
+is distinct from an absent one. The separate incoming-neutrino copy has no
+invented particle-list index.
+
+`GeneratorStep` names cm/ns/GeV units explicitly. Missing initial kinematics or
+neutrino theta remains absent until selection. `select_generator` applies
+origin and status selection independently of native extraction and serialization;
+it then rejects retained records without required kinematics. An omitted origin
+filter accepts every origin; explicitly supplied zero selects unknown origin.
+
+The optional LArCV2 projection is intentionally named
+`project_legacy_generator`. It preserves the pinned SuperaMCTruth output's
+mixed particle units, unsigned track-ID conversion, present-producer counter,
+positron shape rule, self-ancestry placeholders and object-ID sentinel behavior.
+These are compatibility decisions, not shared physics or identity conventions.
+The two products are prepared before output mutation and cleared on empty events.
+
+This model does not replace the transported `Particle`/`ParticleInput` labeling
+model. Generator metadata, ancestry links, and particle trajectory tails are not
+newly supported here; the incoming neutrino's full trajectory is retained because
+the existing output contains it. Linkage to transported truth is a later stage.
 
 ## LArCV2 boundary
 
