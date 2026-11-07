@@ -4,6 +4,7 @@
 #include "ImageMeta3D.h"
 #include "supera/base/meatloaf.h"
 #include <algorithm>
+#include <cstdint>
 #include <sstream>
 
 namespace supera {
@@ -75,26 +76,43 @@ namespace supera {
   }
 
   VoxelID_t ImageMeta3D::shift(const VoxelID_t origin_id,
-                               const int shift_x,
-                               const int shift_y,
-                               const int shift_z) const
+                             const int shift_x,
+                             const int shift_y,
+                             const int shift_z) const
   {
-    int id = origin_id;
-    int zid = id / (_xnum * _ynum);
-    id -= zid * (_xnum * _ynum);
-    zid += shift_z;
-    if(zid < 0 || zid >= (int)_znum) return kINVALID_VOXELID;
+    // Validate the grid and origin before decoding unsigned voxel coordinates.
+    if (!_valid)
+      throw meatloaf("ImageMeta3D::shift cannot be called on invalid meta!");
+    if (origin_id >= _num_element)
+      return kINVALID_VOXELID;
 
-    int yid = id / _xnum;
-    int xid = id - yid * _xnum;
+    size_t x, y, z;
+    id_to_xyz_index(origin_id, x, y, z);
 
-    yid += shift_y;
-    if(yid < 0 || yid >= (int)_ynum) return kINVALID_VOXELID;
+    // Check each signed displacement before unsigned arithmetic. Widen first so
+    // negating INT_MIN is defined, and never narrow the flattened voxel ID.
+    auto shift_axis = [](size_t &index, size_t count, int displacement) {
+      const auto delta = static_cast<std::int64_t>(displacement);
+      if (delta < 0) {
+        const auto distance = static_cast<std::uint64_t>(-delta);
+        if (distance > index)
+          return false;
+        index -= distance;
+      } else {
+        const auto distance = static_cast<std::uint64_t>(delta);
+        if (distance >= count - index)
+          return false;
+        index += distance;
+      }
+      return true;
+    };
 
-    xid += shift_x;
-    if(xid < 0 || xid >= (int)_xnum) return kINVALID_VOXELID;
+    // A failed axis shift leaves the caller's grid unchanged and yields no voxel.
+    if (!shift_axis(x, _xnum, shift_x) || !shift_axis(y, _ynum, shift_y) ||
+        !shift_axis(z, _znum, shift_z))
+      return kINVALID_VOXELID;
 
-    return (zid * (_xnum * _ynum) + yid * _xnum + xid);
+    return index(x, y, z);
   }
 
   Point3D ImageMeta3D::position(VoxelID_t id) const
