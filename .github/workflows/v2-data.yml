@@ -16,8 +16,25 @@ jobs:
         with:
           persist-credentials: false
       - name: Check formatting of v2 additions
-        run: clang-format-14 --dry-run --Werror src/supera/data/Validity.h src/supera/data/Generator.h src/supera/process/SelectGenerator.h src/supera/io/larcv2/Generator.h src/supera/io/larcv2/Generator.cxx src/supera/data/AuxDet.h src/supera/data/Measurement.h src/supera/io/larcv2/AuxDet.h src/supera/io/larcv2/AuxDet.cxx src/supera/data/Optical.h src/supera/data/EventRecord.h src/supera/io/EventWriter.h src/supera/io/larcv2/Writer.h src/supera/io/larcv2/Writer.cxx tests/v2/*.cxx
+        run: clang-format-14 --dry-run --Werror src/supera/data/SpacePointVoxels.h src/supera/process/SelectSpacePoints.h src/supera/process/SelectSpacePoints.cxx src/supera/io/larcv2/SpacePoint.h src/supera/io/larcv2/SpacePoint.cxx src/supera/data/SpacePoint.h src/supera/data/Grid3D.h src/supera/process/FixedGrid.h src/supera/process/FixedGrid.cxx src/supera/data/Validity.h src/supera/data/Generator.h src/supera/process/SelectGenerator.h src/supera/io/larcv2/Generator.h src/supera/io/larcv2/Generator.cxx src/supera/data/AuxDet.h src/supera/data/Measurement.h src/supera/io/larcv2/AuxDet.h src/supera/io/larcv2/AuxDet.cxx src/supera/data/Optical.h src/supera/data/EventRecord.h src/supera/io/EventWriter.h src/supera/io/larcv2/Writer.h src/supera/io/larcv2/Writer.cxx tests/v2/*.cxx tests/v2/grid-consumer/*.cxx
       - name: Build shared model and existing labeling core
         run: cmake -S . -B build/v2 -DSUPERA_BUILD_LABELING=ON -DSUPERA_BUILD_LARCV2=OFF && cmake --build build/v2 -j2 && ctest --test-dir build/v2 --output-on-failure
       - name: Analyze shared record contract
         run: clang-tidy-14 -p build/v2 tests/v2/Data_test.cxx tests/v2/Generator_test.cxx
+      - name: Check installed grid consumer
+        run: |
+          cmake --install build/v2 --prefix "$PWD/build/v2-install"
+          cmake -S tests/v2/grid-consumer -B build/grid-consumer -DCMAKE_PREFIX_PATH="$PWD/build/v2-install"
+          cmake --build build/grid-consumer -j2
+          ctest --test-dir build/grid-consumer --output-on-failure
+      - name: Analyze the new grid bridge (legacy headers audited separately)
+        run: >-
+          clang-tidy-14 -p build/v2
+          --header-filter='/supera/(data/(Grid3D|Validity)\.h|process/FixedGrid\.h)$'
+          src/supera/process/FixedGrid.cxx tests/v2/FixedGrid_test.cxx
+      - name: Check standalone processing with sanitizers
+        run: |
+          cmake -S . -B build/processing-sanitizers -DSUPERA_BUILD_PROCESSING=ON -DSUPERA_BUILD_LABELING=OFF -DSUPERA_BUILD_LARCV2=OFF -DCMAKE_CXX_FLAGS='-O1 -g -fsanitize=address,undefined,float-cast-overflow -fno-omit-frame-pointer' -DCMAKE_EXE_LINKER_FLAGS='-fsanitize=address,undefined,float-cast-overflow' -DCMAKE_SHARED_LINKER_FLAGS='-fsanitize=address,undefined,float-cast-overflow'
+          cmake --build build/processing-sanitizers -j2
+          ctest --test-dir build/processing-sanitizers --output-on-failure
+          clang-tidy-14 -p build/processing-sanitizers --header-filter='/supera/(process/SelectSpacePoints|data/SpacePointVoxels)\.h$' src/supera/process/SelectSpacePoints.cxx tests/v2/SpacePointSelection_test.cxx

@@ -4,6 +4,7 @@
 #include "supera/data/AuxDet.h"
 #include "supera/data/Generator.h"
 #include "supera/data/Optical.h"
+#include "supera/data/SpacePointVoxels.h"
 
 #include <cstdint>
 #include <vector>
@@ -23,6 +24,7 @@ struct EventRecord {
   std::vector<OpticalFlashCollection> optical;
   std::vector<AuxDetSpacePointCollection> auxiliary;
   std::vector<GeneratorCollection> generator;
+  std::vector<SpacePointVoxels> spacepoints;
 };
 } // namespace supera
 #endif

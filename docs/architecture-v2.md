@@ -1,8 +1,9 @@
-# Supera v2 architecture: first migration slice
+# Supera v2 architecture: staged migration
 
 This is a v2 development checkpoint, not a released or stable v2 API.
-Repository renaming and release publication are separate decisions. The optical
-checkpoint is validated; broader event and labeling migrations remain staged.
+Repository renaming and release publication are separate decisions. Optical,
+auxiliary, generator, and fixed-grid reconstructed space-point checkpoints are
+validated; transported-particle and labeling migrations remain staged.
 
 ## Boundaries
 
@@ -16,7 +17,8 @@ native event products
 ```
 
 The current slices cover optical flashes, auxiliary space points, and generator truth: extraction
-and serialization, with no labeling step required. The existing particle `EventInput`, `EventOutput`, and labeling
+and serialization, with no labeling step required. The existing particle
+`EventInput`, `EventOutput`, and labeling
 algorithms are retained unchanged. Their integration into a broader envelope
 will be a later reviewed migration, not an implicit conversion between unrelated
 input and result types.
@@ -46,7 +48,8 @@ The new entry point does not yet provide Python/ROOT bindings for the v2 records
 `OpticalFlash` preserves every stored OpFlash attribute required by legacy
 SuperaOptical. IDs are collection-local; vectors retain their ordering and own
 their values. Missingness follows [the validity contract](validity.md); there is
-no recalibration, physics filtering or time shift. Stored beam flags and fast fractions are not asserted to be measured.
+no recalibration, physics filtering or time shift. Stored beam flags and fast
+fractions are not asserted to be measured.
 
 `OpticalFlashCollection` separates the logical collection name from the configured
 native source identifier. `OpticalConventions` records detector, region, coordinate
@@ -122,7 +125,8 @@ the existing output contains it. Linkage to transported truth is a later stage.
 ## LArCV2 boundary
 
 Only the private implementation under `src/supera/io/larcv2` includes LArCV
-headers in the new production code. Its public header hides the concrete implementation. Input conversion and
+headers in the new production code. Its public header hides the concrete
+implementation. Input conversion and
 shared records do not use LArCV classes or constants.
 
 The writer intentionally projects the existing fields, collection names, and event
@@ -160,3 +164,34 @@ repositories, builds a separate consumer, verifies fixture checksums, exercises
 art product lookup and empty collections, and compares optical-only and combined optical/CRT products
 against both frozen legacy references. It also rejects deliberately corrupted
 comparison fixtures. Its large input and UPS products remain externally provisioned.
+
+## Fixed grid
+
+The [fixed-grid contract](fixed-grid.md) adds standard-only metadata and a checked
+interface around the existing indexer. It is the first v2 bridge into legacy
+labeling types; no LArCV representation is used in its public data or processing.
+
+### Reconstructed points and wire signals
+
+`data/SpacePoint.h` defines owned point columns, optional covariance or
+source-defined charge columns, and optional flat hit associations. Hit collections
+retain source identity and original keys while storing only referenced hits.
+These records use standard-library types and canonical validity conventions.
+`SpacePointVoxels` retains owned source records and selected source/point references
+in `EventRecord`; the LArCV2 writer projects their attributes at the output boundary.
+No art or LArCV dependency
+is introduced into the model.
+
+### Build-selectable reconstructed-point processing
+
+`SUPERA_BUILD_PROCESSING=ON` builds `supera::processing`: the checked grid and
+shared space-point selector, without art, ROOT, LArCV, or YAML. The existing
+labeling library links this component when enabled, reusing the same grid and
+base implementations. `find_package(Supera COMPONENTS processing)` exposes the
+installed target independently of the legacy labeling algorithms.
+
+`select_spacepoints` applies configured cuts, shifts, and collision ranking while
+retaining original sources and selected indices. Float-charge precision is an
+explicit compatibility option; the shared default retains doubles. Malformed or
+ambiguous wire associations fail rather than mixing attributes from different
+points. The selected voxel IDs are sorted once before output projection.

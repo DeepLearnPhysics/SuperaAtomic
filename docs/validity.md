@@ -113,8 +113,9 @@ are audit information, not part of the physics model or a guarantee of NaN paylo
 preservation.
 
 The legacy labeling API still has its own `kINVALID_*` constants. Do not use those
-in new records. Introduce an explicit checked bridge when porting the first
-labeling operation; no unreviewed mass replacement of legacy constants is included.
+in new records. The new `FixedGrid` provides the first explicit checked bridge for grid queries;
+other labeling operations still require their own reviewed bridges. No mass
+replacement of legacy constants is included.
 
 For each step test source defaults, every documented sentinel, valid values near
 sentinels, negative source IDs, partial vectors, nonfinite values, integer range

@@ -1,9 +1,19 @@
 #include "supera/data/EventRecord.h"
+#include "supera/data/Grid3D.h"
+#include "supera/data/SpacePoint.h"
 
 #include <iostream>
 #include <stdexcept>
 
 int main() try {
+  const supera::SpacePointCollection points;
+  if (points.associated_hits || points.covariance_cm2 || points.charge)
+    throw std::runtime_error("Optional SpacePoint information must default to absent");
+
+  const supera::Grid3D unspecified_grid;
+  if (!std::isnan(unspecified_grid.minimum_cm[0]) || unspecified_grid.counts[0] != 0)
+    throw std::runtime_error("Unspecified grid is not a valid default volume");
+
   supera::EventRecord first;
   first.id = {1, 2, 3};
   supera::OpticalFlashCollection collection;

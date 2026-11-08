@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.20)
+project(SuperaGridConsumer LANGUAGES CXX)
+find_package(Supera 2 CONFIG REQUIRED COMPONENTS processing)
+add_executable(grid_consumer main.cxx)
+target_link_libraries(grid_consumer PRIVATE supera::processing)
+enable_testing()
+add_test(NAME installed_grid_contract COMMAND grid_consumer)

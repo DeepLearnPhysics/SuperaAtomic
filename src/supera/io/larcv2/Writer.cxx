@@ -1,9 +1,11 @@
 #include "supera/io/larcv2/Writer.h"
 #include "AuxDet.h"
 #include "Generator.h"
+#include "SpacePoint.h"
 #include "larcv/core/DataFormat/EventCRTHit.h"
 #include "larcv/core/DataFormat/EventNeutrino.h"
 #include "larcv/core/DataFormat/EventParticle.h"
+#include "larcv/core/DataFormat/EventVoxel3D.h"
 
 #include "larcv/core/DataFormat/EventFlash.h"
 #include "larcv/core/DataFormat/IOManager.h"
@@ -21,16 +23,18 @@ public:
   std::vector<std::string> collections;
   std::vector<std::string> auxiliary_collections;
   std::vector<std::string> generator_collections;
+  std::vector<SpacePointOutput> spacepoint_collections;
   bool open{false};
 };
 
 Writer::Writer(const std::string &filename, const std::vector<std::string> &collections,
                const std::vector<std::string> &auxiliary_collections,
-               const std::vector<std::string> &generator_collections)
+               const std::vector<std::string> &generator_collections,
+               const std::vector<SpacePointOutput> &spacepoint_collections)
     : impl_(std::make_unique<Impl>()) {
   // Validate the complete output inventory before opening a file.
-  if (filename.empty() ||
-      (collections.empty() && auxiliary_collections.empty() && generator_collections.empty()))
+  if (filename.empty() || (collections.empty() && auxiliary_collections.empty() &&
+                           generator_collections.empty() && spacepoint_collections.empty()))
     throw std::invalid_argument("Output filename and collections must not be empty");
 
   std::set<std::string> names;
@@ -51,6 +55,13 @@ Writer::Writer(const std::string &filename, const std::vector<std::string> &coll
       throw std::invalid_argument("Generator output names must be nonempty and unique");
   }
 
+  names.clear();
+  for (const auto &configuration : spacepoint_collections)
+    for (const auto &label : spacepoint_labels(configuration))
+      if (!names.insert(label).second)
+        throw std::invalid_argument("Duplicate sparse output label");
+  impl_->spacepoint_collections = spacepoint_collections;
+
   // Open the sink only after configuration validation succeeds.
   impl_->auxiliary_collections = auxiliary_collections;
   impl_->collections = collections;
@@ -61,6 +72,8 @@ Writer::Writer(const std::string &filename, const std::vector<std::string> &coll
   impl_->open = true;
 
   // Register every product, including collections that may stay empty.
+  for (const auto &label : names)
+    impl_->manager.get_data<larcv::EventSparseTensor3D>(label);
   for (const auto &name : collections)
     impl_->manager.get_data<larcv::EventFlash>(name);
   for (const auto &name : auxiliary_collections)
@@ -140,6 +153,13 @@ void Writer::write(const EventRecord &event) {
     generator.push_back(project_legacy_generator(event.generator[i]));
   }
 
+  if (event.spacepoints.size() != impl_->spacepoint_collections.size())
+    throw std::invalid_argument("Space-point output inventory mismatch");
+  std::vector<std::vector<larcv::SparseTensor3D>> spacepoints;
+  for (std::size_t i = 0; i < event.spacepoints.size(); ++i)
+    spacepoints.push_back(
+        project_spacepoints(event.spacepoints[i], impl_->spacepoint_collections[i]));
+
   // LArCV2 stores event IDs as size_t. Do not silently narrow on other platforms.
   for (const auto value : {event.id.run, event.id.subrun, event.id.event})
     if (value >= std::numeric_limits<std::size_t>::max())
@@ -159,6 +179,16 @@ void Writer::write(const EventRecord &event) {
         .emplace(std::move(generator[i].particles));
     impl_->manager.get_data<larcv::EventNeutrino>(impl_->generator_collections[i])
         .emplace(std::move(generator[i].neutrinos));
+  }
+
+  for (std::size_t i = 0; i < spacepoints.size(); ++i) {
+    const auto labels = spacepoint_labels(impl_->spacepoint_collections[i]);
+    for (std::size_t j = 0; j < labels.size(); ++j) {
+      auto &tensor = spacepoints[i][j];
+      const auto meta = tensor.meta();
+      impl_->manager.get_data<larcv::EventSparseTensor3D>(labels[j]).emplace(std::move(tensor),
+                                                                             meta);
+    }
   }
 
   if (!impl_->manager.save_entry())
