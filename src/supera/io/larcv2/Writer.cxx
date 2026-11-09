@@ -1,7 +1,9 @@
 #include "supera/io/larcv2/Writer.h"
 #include "AuxDet.h"
+#include "Deposit.h"
 #include "Generator.h"
 #include "SpacePoint.h"
+#include "Transport.h"
 #include "larcv/core/DataFormat/EventCRTHit.h"
 #include "larcv/core/DataFormat/EventNeutrino.h"
 #include "larcv/core/DataFormat/EventParticle.h"
@@ -24,17 +26,24 @@ public:
   std::vector<std::string> auxiliary_collections;
   std::vector<std::string> generator_collections;
   std::vector<SpacePointOutput> spacepoint_collections;
+  std::vector<std::string> transport_collections;
+  std::unique_ptr<TransportArchive> archive;
+  std::vector<DepositOutput> deposit_collections;
+  std::unique_ptr<DepositArchive> deposit_archive;
   bool open{false};
 };
 
 Writer::Writer(const std::string &filename, const std::vector<std::string> &collections,
                const std::vector<std::string> &auxiliary_collections,
                const std::vector<std::string> &generator_collections,
-               const std::vector<SpacePointOutput> &spacepoint_collections)
+               const std::vector<SpacePointOutput> &spacepoint_collections,
+               const std::vector<std::string> &transport_collections,
+               const std::vector<DepositOutput> &deposit_collections)
     : impl_(std::make_unique<Impl>()) {
   // Validate the complete output inventory before opening a file.
   if (filename.empty() || (collections.empty() && auxiliary_collections.empty() &&
-                           generator_collections.empty() && spacepoint_collections.empty()))
+                           generator_collections.empty() && spacepoint_collections.empty() &&
+                           transport_collections.empty() && deposit_collections.empty()))
     throw std::invalid_argument("Output filename and collections must not be empty");
 
   std::set<std::string> names;
@@ -55,12 +64,28 @@ Writer::Writer(const std::string &filename, const std::vector<std::string> &coll
       throw std::invalid_argument("Generator output names must be nonempty and unique");
   }
 
+  for (const auto &name : transport_collections) {
+    if (name.empty() || !names.insert(name).second)
+      throw std::invalid_argument(
+          "Transport output names must be unique, including generator outputs");
+  }
+  impl_->transport_collections = transport_collections;
+
   names.clear();
   for (const auto &configuration : spacepoint_collections)
     for (const auto &label : spacepoint_labels(configuration))
       if (!names.insert(label).second)
         throw std::invalid_argument("Duplicate sparse output label");
   impl_->spacepoint_collections = spacepoint_collections;
+
+  std::set<std::string> deposit_names;
+  for (const auto &definition : deposit_collections) {
+    if (definition.name.empty() || !deposit_names.insert(definition.name).second)
+      throw std::invalid_argument("Deposit output names must be nonempty and unique");
+    if (definition.voxelize && !names.insert(definition.name).second)
+      throw std::invalid_argument("Deposit tensor conflicts with another output label");
+  }
+  impl_->deposit_collections = deposit_collections;
 
   // Open the sink only after configuration validation succeeds.
   impl_->auxiliary_collections = auxiliary_collections;
@@ -70,6 +95,17 @@ Writer::Writer(const std::string &filename, const std::vector<std::string> &coll
   if (!impl_->manager.initialize())
     throw std::runtime_error("Cannot initialize LArCV2 output");
   impl_->open = true;
+
+  if (!transport_collections.empty())
+    impl_->archive = std::make_unique<TransportArchive>(filename + ".transport.root");
+  for (const auto &name : transport_collections)
+    impl_->manager.get_data<larcv::EventParticle>(name);
+
+  if (!deposit_collections.empty())
+    impl_->deposit_archive = std::make_unique<DepositArchive>(filename + ".deposits.root");
+  for (const auto &definition : deposit_collections)
+    if (definition.voxelize)
+      impl_->manager.get_data<larcv::EventClusterVoxel3D>(definition.name);
 
   // Register every product, including collections that may stay empty.
   for (const auto &label : names)
@@ -160,6 +196,28 @@ void Writer::write(const EventRecord &event) {
     spacepoints.push_back(
         project_spacepoints(event.spacepoints[i], impl_->spacepoint_collections[i]));
 
+  if (event.transport.size() != impl_->transport_collections.size())
+    throw std::invalid_argument("Transport output inventory mismatch");
+  std::vector<std::vector<larcv::Particle>> transport;
+  for (std::size_t i = 0; i < event.transport.size(); ++i) {
+    if (event.transport[i].name != impl_->transport_collections[i])
+      throw std::invalid_argument("Transport output name/order mismatch");
+    transport.push_back(project_transport(event.transport[i]));
+  }
+
+  if (event.deposits.size() != impl_->deposit_collections.size())
+    throw std::invalid_argument("Deposit output inventory mismatch");
+  std::vector<std::optional<DepositProducts>> deposits;
+  for (std::size_t i = 0; i < event.deposits.size(); ++i) {
+    const auto &definition = impl_->deposit_collections[i];
+    if (event.deposits[i].name != definition.name)
+      throw std::invalid_argument("Deposit output name/order mismatch");
+    if (definition.voxelize)
+      deposits.emplace_back(project_deposits(event.deposits[i]));
+    else
+      deposits.emplace_back();
+  }
+
   // LArCV2 stores event IDs as size_t. Do not silently narrow on other platforms.
   for (const auto value : {event.id.run, event.id.subrun, event.id.event})
     if (value >= std::numeric_limits<std::size_t>::max())
@@ -191,6 +249,26 @@ void Writer::write(const EventRecord &event) {
     }
   }
 
+  for (std::size_t i = 0; i < transport.size(); ++i)
+    impl_->manager.get_data<larcv::EventParticle>(impl_->transport_collections[i])
+        .emplace(std::move(transport[i]));
+  if (impl_->archive)
+    impl_->archive->write(event);
+
+  for (std::size_t i = 0; i < deposits.size(); ++i) {
+    if (!deposits[i])
+      continue;
+    auto &products = *deposits[i];
+    const auto &name = impl_->deposit_collections[i].name;
+    const auto meta = products.clusters.meta();
+    impl_->manager.get_data<larcv::EventClusterVoxel3D>(name).emplace(std::move(products.clusters),
+                                                                      meta);
+    impl_->manager.get_data<larcv::EventSparseTensor3D>(name).emplace(std::move(products.tensor),
+                                                                      meta);
+  }
+  if (impl_->deposit_archive)
+    impl_->deposit_archive->write(event);
+
   if (!impl_->manager.save_entry())
     throw std::runtime_error("Cannot save LArCV2 event");
 }
@@ -199,6 +277,10 @@ void Writer::close() {
   if (impl_->open) {
     impl_->open = false;
     impl_->manager.finalize();
+    if (impl_->deposit_archive)
+      impl_->deposit_archive->close();
+    if (impl_->archive)
+      impl_->archive->close();
   }
 }
 } // namespace supera::io::larcv2

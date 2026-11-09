@@ -8,6 +8,11 @@
 #include <vector>
 
 namespace supera::io::larcv2 {
+struct DepositOutput {
+  std::string name;
+  bool voxelize{false};
+};
+
 struct SpacePointOutput {
   std::string name;
   unsigned int planes{3};
@@ -22,7 +27,9 @@ public:
   Writer(const std::string &filename, const std::vector<std::string> &collections,
          const std::vector<std::string> &auxiliary_collections = {},
          const std::vector<std::string> &generator_collections = {},
-         const std::vector<SpacePointOutput> &spacepoint_collections = {});
+         const std::vector<SpacePointOutput> &spacepoint_collections = {},
+         const std::vector<std::string> &transport_collections = {},
+         const std::vector<DepositOutput> &deposit_collections = {});
   ~Writer() override;
   Writer(const Writer &) = delete;
   Writer &operator=(const Writer &) = delete;

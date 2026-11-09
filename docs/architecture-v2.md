@@ -195,3 +195,35 @@ retaining original sources and selected indices. Float-charge precision is an
 explicit compatibility option; the shared default retains doubles. Malformed or
 ambiguous wire associations fail rather than mixing attributes from different
 points. The selected voxel IDs are sorted once before output projection.
+
+## Persisted transport inventory
+
+`data/Transport.h` now separates source MCParticle records from the existing
+labeling `ParticleInput`/`ParticleLabel` types. `process/ResolveTransport` preserves
+raw parents and daughters while deriving direct-parent, available-ancestor, and
+primary references. Suppression-map evidence can bridge missing ancestors but
+cannot recreate their properties. Conflicts and cycles remain explicit. No PDG,
+energy, or detector-visibility cut determines inventory membership.
+
+The LArCV2 writer supports a transport collection and a companion ROOT archive
+for source fields that Particle cannot represent. This is a migration artifact,
+not the eventual output-format decision. The shared model and resolver have no
+ROOT, LArCV, or LArSoft dependency. See larsoft2supera's `docs/transport-port.md`
+for the native source contract, comparison results, writer-only coordinate
+convention, and current coverage limits. MCReco is absent from the new inventory
+path; replacing charge labeling and calorimetry remains separate work.
+
+### Deposit attribution
+
+`DepositCollection` keeps reduced energy points, complete step segments, and
+readout IDEs as distinct views of truth. `AttributeDeposits` resolves sparse
+identities against a named transport inventory, preserving exact creators,
+upstream assigned identities, and recovered ancestors separately. Explicit
+original/negative-assigned pairs from full steps and readout can recover
+suppressed-ID affiliation without inventing a missing particle record.
+
+Physical-energy projection uses the shared grid and double precision sums.
+Channel IDEs cannot be projected as independent physical deposited energy.
+The LArCV writer emits inventory-aligned clusters and a total energy tensor;
+companion ROOT archives retain full precision and per-contribution provenance.
+Semantic grouping and reconstructed-charge matching are separate later stages.

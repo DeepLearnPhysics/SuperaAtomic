@@ -2,9 +2,11 @@
 #define SUPERA_DATA_EVENTRECORD_H
 
 #include "supera/data/AuxDet.h"
+#include "supera/data/Deposit.h"
 #include "supera/data/Generator.h"
 #include "supera/data/Optical.h"
 #include "supera/data/SpacePointVoxels.h"
+#include "supera/data/Transport.h"
 
 #include <cstdint>
 #include <vector>
@@ -24,6 +26,8 @@ struct EventRecord {
   std::vector<OpticalFlashCollection> optical;
   std::vector<AuxDetSpacePointCollection> auxiliary;
   std::vector<GeneratorCollection> generator;
+  std::vector<TransportCollection> transport;
+  std::vector<DepositCollection> deposits;
   std::vector<SpacePointVoxels> spacepoints;
 };
 } // namespace supera
